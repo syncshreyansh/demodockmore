@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { mockAccounts, mockUser } from '../api/mockData';
 
 const AccountsContext = createContext(null);
@@ -187,3 +187,5 @@ export function useAccountsContext() {
   }
   return context;
 }
+
+

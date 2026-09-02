@@ -1,4 +1,4 @@
-/**
+﻿/**
  * mockData.js
  * Centralized mock data layer for dockMore multi-cloud storage aggregator.
  * All hardcoded accounts, files, folders, and transfers live here.
@@ -342,3 +342,5 @@ export const mockDashboardStats = {
     },
   ],
 };
+
+

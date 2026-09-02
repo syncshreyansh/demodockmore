@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, HelpCircle, ChevronDown, Send, MessageSquare, ShieldCheck, Mail } from 'lucide-react';
 import PillButton from './PillButton';
 import { useToast } from '../../context/ToastContext';
@@ -42,7 +42,7 @@ export default function HelpSupportModal({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-6 relative shadow-2xl animate-fade-in max-h-[85vh] overflow-y-auto">
+      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-6 relative shadow-2xl  max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-track/40 flex items-center justify-center text-ink shrink-0">
@@ -143,3 +143,7 @@ export default function HelpSupportModal({ isOpen, onClose }) {
     </div>
   );
 }
+
+
+
+

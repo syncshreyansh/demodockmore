@@ -1,10 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 
 /**
  * StatCard
- * Card/panel background: #FAFAF9 (bg-surface) or #FFFFFF
- * Rounded corners: 20px (rounded-3xl or rounded-2xl)
- * No visible border, no box shadow
+ * Card/panel background: bg-surface, bg-sidebar, or bg-white
+ * Rounded corners: figma (14px)
  */
 export default function StatCard({
   title,
@@ -15,10 +14,15 @@ export default function StatCard({
   action,
   icon: Icon,
   children,
-  variant = 'white',
+  variant = 'panel',
   className = '',
 }) {
-  const bgClass = variant === 'sidebar' ? 'bg-sidebar' : 'bg-white';
+  const bgClass =
+    variant === 'sidebar'
+      ? 'bg-sidebar'
+      : variant === 'surface'
+      ? 'bg-surface'
+      : 'bg-white';
   const hasHeader = Boolean(title || titleSubtitle);
 
   return (
@@ -53,7 +57,7 @@ export default function StatCard({
           <div className="flex items-start justify-between gap-2">
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <div className="font-sans font-semibold text-2xl md:text-3xl text-[#303030] tracking-tight">
+                <div className="font-sans font-semibold text-2xl md:text-3xl text-ink tracking-tight">
                   {value}
                 </div>
                 {valueBadge && <div>{valueBadge}</div>}
@@ -79,3 +83,5 @@ export default function StatCard({
     </div>
   );
 }
+
+

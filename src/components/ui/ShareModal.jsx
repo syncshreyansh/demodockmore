@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Copy, Check, Link2, Globe, Shield } from 'lucide-react';
 import PillButton from './PillButton';
 import { useToast } from '../../context/ToastContext';
@@ -26,7 +26,7 @@ export default function ShareModal({ isOpen, file, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl animate-fade-in">
+      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl ">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-ink">Share File</h3>
@@ -50,7 +50,7 @@ export default function ShareModal({ isOpen, file, onClose }) {
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="text-xs font-bold text-ink truncate">{file.name}</h4>
-            <p className="text-[11px] text-muted truncate mt-0.5">{file.size} � {file.provider.replace('-', ' ')}</p>
+            <p className="text-[11px] text-muted truncate mt-0.5">{file.size} • {file.provider.replace('-', ' ')}</p>
           </div>
         </div>
 
@@ -84,3 +84,7 @@ export default function ShareModal({ isOpen, file, onClose }) {
     </div>
   );
 }
+
+
+
+

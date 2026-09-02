@@ -1,4 +1,4 @@
-import { mockFiles, mockFolders, mockDashboardStats } from './mockData';
+﻿import { mockFiles, mockFolders, mockDashboardStats } from './mockData';
 
 let filesStore = [...mockFiles];
 let foldersStore = [...mockFolders];
@@ -42,3 +42,5 @@ export async function getDashboardStats() {
     }, 50);
   });
 }
+
+

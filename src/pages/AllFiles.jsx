@@ -1,12 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Upload,
   FolderPlus,
-  SlidersHorizontal,
   ChevronRight,
-  Search,
-  Filter,
   Check,
   X,
   Trash2,
@@ -17,13 +13,11 @@ import {
 } from 'lucide-react';
 import FileRow from '../components/ui/FileRow';
 import PillButton from '../components/ui/PillButton';
-import SearchInput from '../components/ui/SearchInput';
 import ProviderIcon from '../components/ui/ProviderIcon';
 import FilePreviewModal from '../components/ui/FilePreviewModal';
 import ShareModal from '../components/ui/ShareModal';
 import RenameModal from '../components/ui/RenameModal';
 import MoveModal from '../components/ui/MoveModal';
-import UploadModal from '../components/ui/UploadModal';
 import CreateFolderModal from '../components/ui/CreateFolderModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { useFiles } from '../hooks/useFiles';
@@ -66,7 +60,6 @@ export default function AllFiles() {
   const [activeRenameFile, setActiveRenameFile] = useState(null);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [movingFileIds, setMovingFileIds] = useState([]);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [deleteConfirmState, setDeleteConfirmState] = useState({
     isOpen: false,
@@ -196,72 +189,57 @@ export default function AllFiles() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page Title & Main Actions */}
+      {/* Top Breadcrumb & Action Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-sans font-bold text-2xl md:text-3xl text-ink">
-            {currentFolder ? currentFolder.name : 'All Files'}
-          </h1>
-          {/* Breadcrumbs */}
-          <div className="flex items-center gap-1.5 text-xs text-muted mt-1 font-medium flex-wrap">
-            <button
-              type="button"
-              onClick={clearFolderFilter}
-              className="hover:text-ink transition-colors"
-            >
-              Root
-            </button>
-            <ChevronRight className="w-3 h-3" />
-            <button
-              type="button"
-              onClick={clearFolderFilter}
-              className={`hover:text-ink transition-colors ${!currentFolder ? 'text-ink font-semibold' : ''}`}
-            >
-              Multi-Cloud Storage
-            </button>
-            {currentFolder && (
-              <>
-                <ChevronRight className="w-3 h-3" />
-                <span className="text-ink font-bold uppercase flex items-center gap-1 bg-track/40 px-2 py-0.5 rounded-full">
-                  {currentFolder.name}
-                  <button
-                    type="button"
-                    onClick={clearFolderFilter}
-                    className="hover:text-ink ml-0.5"
-                    title="Clear folder filter"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              </>
-            )}
-            {selectedProvider !== 'all' && (
-              <>
-                <ChevronRight className="w-3 h-3" />
-                <span className="capitalize">{selectedProvider.replace('-', ' ')}</span>
-              </>
-            )}
-          </div>
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-1.5 text-xs text-muted font-medium flex-wrap">
+          <button
+            type="button"
+            onClick={clearFolderFilter}
+            className="hover:text-ink transition-colors"
+          >
+            Root
+          </button>
+          <ChevronRight className="w-3 h-3" />
+          <button
+            type="button"
+            onClick={clearFolderFilter}
+            className={`hover:text-ink transition-colors ${!currentFolder ? 'text-ink font-semibold' : ''}`}
+          >
+            Multi-Cloud Storage
+          </button>
+          {currentFolder && (
+            <>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-ink font-bold uppercase flex items-center gap-1 bg-track/40 px-2 py-0.5 rounded-figma">
+                {currentFolder.name}
+                <button
+                  type="button"
+                  onClick={clearFolderFilter}
+                  className="hover:text-ink ml-0.5"
+                  title="Clear folder filter"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            </>
+          )}
+          {selectedProvider !== 'all' && (
+            <>
+              <ChevronRight className="w-3 h-3" />
+              <span className="capitalize">{selectedProvider.replace('-', ' ')}</span>
+            </>
+          )}
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <PillButton
-            variant="ghost"
-            size="sm"
-            icon={FolderPlus}
-            onClick={() => setShowCreateFolderModal(true)}
-          >
-            New Folder
-          </PillButton>
-          <PillButton
-            variant="solid"
-            size="sm"
-            icon={Upload}
-            onClick={() => setShowUploadModal(true)}
-          >
-            Upload File
-          </PillButton>
-        </div>
+        <PillButton
+          variant="ghost"
+          size="md"
+          icon={FolderPlus}
+          onClick={() => setShowCreateFolderModal(true)}
+        >
+          New Folder
+        </PillButton>
       </div>
 
       {/* Filter Pill Row */}
@@ -273,7 +251,7 @@ export default function AllFiles() {
               key={filter.id}
               type="button"
               onClick={() => setSelectedProvider(filter.id)}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors duration-150 ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-figma text-xs font-semibold shrink-0 transition-colors duration-150 ${
                 isActive
                   ? 'bg-ink text-white'
                   : 'bg-surface text-ink hover:bg-white'
@@ -290,7 +268,7 @@ export default function AllFiles() {
 
       {/* Bulk Action Bar (shows when >=1 file selected) */}
       {selectedIds.length > 0 ? (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-ink text-white p-3 px-4 rounded-2xl animate-fade-in shadow-md">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-ink text-white p-3 px-4 rounded-2xl shadow-md">
           <div className="flex items-center gap-3">
             <div
               onClick={handleSelectAll}
@@ -344,22 +322,14 @@ export default function AllFiles() {
           </div>
         </div>
       ) : (
-        /* Search & Secondary Filter Bar */
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface/60 p-2 rounded-2xl">
-          <SearchInput
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery('')}
-            placeholder="Filter files by name or account..."
-            className="flex-1"
-            size="sm"
-          />
+        /* Secondary Stats & Sort Bar */
+        <div className="flex items-center justify-between bg-surface/60 px-4 py-2.5 rounded-2xl">
+          <span className="text-xs text-muted font-medium">
+            {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
+            {searchQuery && ` matching "${searchQuery}"`}
+          </span>
 
-          <div className="flex items-center gap-2 justify-end px-2">
-            <span className="text-xs text-muted font-medium">
-              {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
-            </span>
-            <div className="h-4 w-px bg-track" />
+          <div className="flex items-center gap-2">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -483,14 +453,6 @@ export default function AllFiles() {
         />
       )}
 
-      {showUploadModal && (
-        <UploadModal
-          isOpen={showUploadModal}
-          defaultFolderId={folderParam}
-          onClose={() => setShowUploadModal(false)}
-        />
-      )}
-
       {showCreateFolderModal && (
         <CreateFolderModal
           isOpen={showCreateFolderModal}
@@ -512,3 +474,9 @@ export default function AllFiles() {
     </div>
   );
 }
+
+
+
+
+
+

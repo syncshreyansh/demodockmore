@@ -1,4 +1,4 @@
-/** @type {import('tailwindcss').Config} */
+﻿/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -10,7 +10,7 @@ export default {
         background: '#E8E7E5',
         sidebar: '#E9E9E9',
         surface: '#FAFAF9',
-        ink: '#1A1A1A',
+        ink: '#303030',
         muted: '#8A8785',
         track: '#D9D8D6',
         progress: '#303030',

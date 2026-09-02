@@ -66,15 +66,31 @@ export default function Transfers() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
+      {/* Top Filter Tabs & New Transfer Action Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-sans font-bold text-2xl md:text-3xl text-ink">
-            Transfers
-          </h1>
-          <p className="text-xs text-muted mt-1 font-medium">
-            High-speed cloud-to-cloud direct synchronization and file migrations.
-          </p>
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-2 select-none">
+          {[
+            { id: 'all', label: 'All Transfers' },
+            { id: 'in_progress', label: 'Active Jobs' },
+            { id: 'completed', label: 'Completed' },
+          ].map((tab) => {
+            const isActive = filterTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilterTab(tab.id)}
+                className={`px-4 py-2 rounded-figma text-xs font-semibold transition-colors duration-150 ${
+                  isActive
+                    ? 'bg-ink text-white'
+                    : 'bg-surface text-ink hover:bg-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         <PillButton
@@ -85,31 +101,6 @@ export default function Transfers() {
         >
           New Transfer
         </PillButton>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 select-none">
-        {[
-          { id: 'all', label: 'All Transfers' },
-          { id: 'in_progress', label: 'Active Jobs' },
-          { id: 'completed', label: 'Completed' },
-        ].map((tab) => {
-          const isActive = filterTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilterTab(tab.id)}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors duration-150 ${
-                isActive
-                  ? 'bg-ink text-white'
-                  : 'bg-surface text-ink hover:bg-white'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
       </div>
 
       {/* Transfers List */}
@@ -152,7 +143,7 @@ export default function Transfers() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Cloud Source -> Destination Badge */}
-                    <div className="flex items-center gap-2 bg-track/40 px-3 py-1.5 rounded-full shrink-0">
+                    <div className="flex items-center gap-2 bg-track/40 px-3 py-1.5 rounded-figma shrink-0">
                       <ProviderIcon provider={item.sourceProvider} size="xs" />
                       <ArrowRight className="w-3.5 h-3.5 text-muted" />
                       <ProviderIcon provider={item.destinationProvider} size="xs" />
@@ -164,7 +155,7 @@ export default function Transfers() {
                         {item.filename}
                       </h4>
                       <p className="text-xs text-muted truncate mt-0.5 font-medium">
-                        {item.sourceAccount} ? {item.destinationAccount}
+                        {item.sourceAccount} â†’ {item.destinationAccount}
                       </p>
                     </div>
                   </div>
@@ -174,12 +165,12 @@ export default function Transfers() {
                     <span className="text-xs font-semibold text-ink">{item.size}</span>
 
                     {isCompleted ? (
-                      <div className="flex items-center gap-1.5 bg-ink text-white text-xs font-semibold px-3 py-1 rounded-full">
+                      <div className="flex items-center gap-1.5 bg-ink text-white text-xs font-semibold px-3 py-1 rounded-figma">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Completed</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 bg-track text-ink text-xs font-semibold px-3 py-1 rounded-full">
+                      <div className="flex items-center gap-1.5 bg-track text-ink text-xs font-semibold px-3 py-1 rounded-figma">
                         <Zap className="w-3.5 h-3.5" />
                         <span>{item.speed || 'Transferring'}</span>
                       </div>
@@ -216,7 +207,7 @@ export default function Transfers() {
                     {!isCompleted && (
                       <div className="flex items-center gap-3 text-ink font-semibold">
                         <span>{item.progress}%</span>
-                        {item.eta && <span className="text-muted font-normal">� {item.eta}</span>}
+                        {item.eta && <span className="text-muted font-normal">â€¢ {item.eta}</span>}
                       </div>
                     )}
                   </div>
@@ -230,7 +221,7 @@ export default function Transfers() {
       {/* New Transfer Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl animate-fade-in">
+          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-ink">New Cloud Transfer</h3>
@@ -348,3 +339,8 @@ export default function Transfers() {
     </div>
   );
 }
+
+
+
+
+

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+﻿import React, { createContext, useContext, useState, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
@@ -37,7 +37,7 @@ export function ToastProvider({ children }) {
           return (
             <div
               key={t.id}
-              className="pointer-events-auto bg-ink text-white text-xs sm:text-sm font-medium px-4 py-3 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.25)] border border-white/10 flex items-center justify-between gap-3 animate-fade-in transition-all duration-150 select-none"
+              className="pointer-events-auto bg-ink text-white text-xs sm:text-sm font-medium px-4 py-3 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.25)] border border-white/10 flex items-center justify-between gap-3  transition-all duration-150 select-none"
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 {isError ? (
@@ -72,3 +72,6 @@ export function useToast() {
   }
   return context;
 }
+
+
+

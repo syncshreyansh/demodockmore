@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Folder, FolderInput, HardDrive } from 'lucide-react';
 import PillButton from './PillButton';
 import { useFiles } from '../../hooks/useFiles';
@@ -27,7 +27,7 @@ export default function MoveModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl animate-fade-in">
+      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl ">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-track/30 flex items-center justify-center text-ink shrink-0">
@@ -105,3 +105,7 @@ export default function MoveModal({
     </div>
   );
 }
+
+
+
+

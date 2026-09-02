@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { MoreVertical } from 'lucide-react';
 import ProviderIcon from './ProviderIcon';
 import ProgressBar from './ProgressBar';
@@ -6,9 +6,9 @@ import ProgressBar from './ProgressBar';
 /**
  * AccountRow
  * Matches sidebar reference design:
- * - Row 1: ProviderIcon on far left, Provider Name ("Google Drive", "OneDrive", "Mega") in bold dark text (font-semibold text-sm text-ink), 3-dots kebab menu (MoreVertical) on far right. No truncation on provider name.
- * - Row 2: Full Email address (account.email) in muted gray text (text-[11px] or text-xs text-muted) directly below provider name. No truncation so full email is always readable.
- * - Row 3: Thin progress bar (h-1) spanning full width with tight gap (gap-1.5) to usage text ("7.5/15 GB") right-aligned at end of line.
+ * - Row 1: ProviderIcon on far left, Provider Name in bold dark text, 3-dots menu on right.
+ * - Row 2: Full Email address in muted text.
+ * - Row 3: Thin progress bar (h-1) spanning full width with usage text.
  */
 export default function AccountRow({ account, className = '', onClick }) {
   if (!account) return null;
@@ -22,7 +22,6 @@ export default function AccountRow({ account, className = '', onClick }) {
     totalStorageGB = 15,
   } = account;
 
-  // Ensure "Mega" displays with proper casing matching the reference design
   const formattedProviderName =
     providerName === 'MEGA' || provider === 'mega'
       ? 'Mega'
@@ -76,3 +75,5 @@ export default function AccountRow({ account, className = '', onClick }) {
     </div>
   );
 }
+
+

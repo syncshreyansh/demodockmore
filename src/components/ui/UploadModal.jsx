@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { X, Upload, File, CheckCircle2, Cloud, Folder } from 'lucide-react';
 import PillButton from './PillButton';
 import ProgressBar from './ProgressBar';
@@ -117,7 +117,7 @@ export default function UploadModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl  max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -280,3 +280,7 @@ export default function UploadModal({
     </div>
   );
 }
+
+
+
+

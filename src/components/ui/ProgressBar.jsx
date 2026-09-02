@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 /**
  * ProgressBar
@@ -33,3 +33,5 @@ export default function ProgressBar({
     </div>
   );
 }
+
+

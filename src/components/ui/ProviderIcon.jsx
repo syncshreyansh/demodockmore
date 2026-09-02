@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import googleDriveSvg from '../../assets/icons/google-drive.svg';
 import onedriveSvg from '../../assets/icons/onedrive.svg';
 import dropboxSvg from '../../assets/icons/dropbox.svg';
@@ -84,3 +84,5 @@ export default function ProviderIcon({
     />
   );
 }
+
+

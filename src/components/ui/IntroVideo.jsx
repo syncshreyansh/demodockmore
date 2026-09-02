@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import introVideo from '../../assets/intro/dockmore-intro.mov';
 
 export default function IntroVideo({ onComplete }) {
@@ -42,3 +42,4 @@ export default function IntroVideo({ onComplete }) {
     </div>
   );
 }
+

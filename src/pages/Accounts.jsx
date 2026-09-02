@@ -1,11 +1,8 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   Plus,
   RefreshCw,
   Trash2,
-  HardDrive,
-  CheckCircle,
-  AlertCircle,
   ExternalLink,
   ShieldCheck,
   X,
@@ -69,20 +66,15 @@ export default function Accounts() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-sans font-bold text-2xl md:text-3xl text-ink">
-            Cloud Accounts
-          </h1>
-          <p className="text-xs text-muted mt-1 font-medium">
-            Manage your connected storage providers, quota limits, and authentication status.
-          </p>
-        </div>
+      {/* Top Action Row */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted font-medium">
+          {accounts.length} connected storage accounts
+        </span>
 
         <PillButton
           variant="solid"
-          size="md"
+          size="sm"
           icon={Plus}
           onClick={() => setShowConnectModal(true)}
         >
@@ -107,7 +99,7 @@ export default function Accounts() {
             return (
               <div
                 key={account.id}
-                className="bg-surface rounded-2xl p-6 flex flex-col justify-between hover:bg-white transition-colors duration-150 relative"
+                className="bg-surface rounded-2xl p-6 flex flex-col justify-between hover:bg-white transition-colors duration-150 relative shadow-sm"
               >
                 <div>
                   {/* Top Header */}
@@ -119,7 +111,7 @@ export default function Accounts() {
                     />
 
                     {/* Status Badge */}
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-track/40 text-xs font-semibold">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-figma bg-track/40 text-xs font-semibold">
                       <span
                         className={`w-2 h-2 rounded-full ${
                           isExpired ? 'bg-amber-500' : 'bg-emerald-500'
@@ -211,7 +203,7 @@ export default function Accounts() {
       {/* Connect Account Modal */}
       {showConnectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl animate-fade-in">
+          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-ink">Connect Cloud Account</h3>
@@ -294,3 +286,7 @@ export default function Accounts() {
     </div>
   );
 }
+
+
+
+

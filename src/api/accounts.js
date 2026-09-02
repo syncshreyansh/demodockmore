@@ -1,4 +1,4 @@
-import { mockAccounts, mockUser } from './mockData';
+﻿import { mockAccounts, mockUser } from './mockData';
 
 let accountsStore = [...mockAccounts];
 let userStore = { ...mockUser };
@@ -51,3 +51,5 @@ export async function disconnectAccount(id) {
     }, 100);
   });
 }
+
+

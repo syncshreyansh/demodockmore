@@ -1,18 +1,19 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 
 /**
  * PillButton
  * Variants:
- * - "solid": Solid #1A1A1A background with white text (primary actions)
- * - "ghost": Bordered or transparent background with #1A1A1A text (secondary actions)
+ * - "solid": Solid #303030 background with white text (primary actions)
+ * - "ghost": Bordered or transparent background with text-ink (secondary actions)
  * - "light": Surface background with subtle border
+ * Shape: rounded-rectangle (rounded-figma / 14px border-radius)
  */
 export default function PillButton({
   children,
   variant = 'solid',
   size = 'md',
-  rounded = 'full',
+  rounded = 'figma',
   className = '',
   icon: Icon,
   iconPosition = 'left',
@@ -25,6 +26,7 @@ export default function PillButton({
 }) {
   const roundedClasses = {
     full: 'rounded-full',
+    figma: 'rounded-figma',
     lg: 'rounded-lg',
     md: 'rounded-md',
     sm: 'rounded-sm',
@@ -34,20 +36,20 @@ export default function PillButton({
   };
 
   const hasCustomRounded = className.includes('rounded-');
-  const roundedClass = hasCustomRounded ? '' : (roundedClasses[rounded] || 'rounded-full');
+  const roundedClass = hasCustomRounded ? '' : (roundedClasses[rounded] || 'rounded-figma');
 
   const baseStyles =
     `inline-flex items-center justify-center font-medium select-none transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${roundedClass}`;
 
   const sizeStyles = {
-    xs: 'px-2.5 py-1 text-xs gap-1',
-    sm: 'px-3.5 py-1.5 text-xs gap-1.5',
-    md: 'px-4 py-2 text-sm gap-2',
-    lg: 'px-5 py-2.5 text-sm gap-2.5',
+    xs: 'px-3 py-1.5 text-xs gap-1',
+    sm: 'px-4 py-2 text-xs gap-1.5',
+    md: 'px-5 py-2.5 text-sm gap-2',
+    lg: 'px-6 py-3 text-sm gap-2.5',
   };
 
   const variantStyles = {
-    solid: 'bg-ink text-white hover:bg-black/85 active:bg-black shadow-none',
+    solid: 'bg-ink text-white hover:bg-[#202020] active:bg-[#151515] shadow-none',
     ghost:
       'bg-transparent text-ink border border-ink/20 hover:border-ink hover:bg-black/5 active:bg-black/10',
     light:

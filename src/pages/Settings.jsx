@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import {
   User,
   Palette,
@@ -7,9 +7,6 @@ import {
   Upload,
   Check,
   Key,
-  HardDrive,
-  Mail,
-  Lock,
 } from 'lucide-react';
 import PillButton from '../components/ui/PillButton';
 import { useAccounts } from '../hooks/useAccounts';
@@ -79,16 +76,6 @@ export default function Settings() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div>
-        <h1 className="font-sans font-bold text-2xl md:text-3xl text-ink">
-          Settings
-        </h1>
-        <p className="text-xs text-muted mt-1 font-medium">
-          Manage your aggregator preferences, profile details, and security configuration.
-        </p>
-      </div>
-
       {/* Main Settings Grid: Left Sub-Nav + Right Content Card */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         {/* Left Sub-nav */}
@@ -102,7 +89,7 @@ export default function Settings() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-full font-medium text-sm transition-colors duration-150 text-left ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-figma font-medium text-sm transition-colors duration-150 text-left ${
                   isActive
                     ? 'bg-ink text-white font-semibold'
                     : 'text-ink hover:bg-black/5'
@@ -391,7 +378,7 @@ export default function Settings() {
                         End-to-End Vault Key
                       </span>
                     </div>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-figma bg-emerald-100 text-emerald-800">
                       Active
                     </span>
                   </div>
@@ -423,3 +410,8 @@ export default function Settings() {
     </div>
   );
 }
+
+
+
+
+

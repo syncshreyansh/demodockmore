@@ -1,14 +1,16 @@
-import React from 'react';
+﻿import React from 'react';
 import { Search, X } from 'lucide-react';
 
 /**
  * SearchInput
- * Rendered as a soft light-gray rounded pill input (#E5E4E2 / bg-sidebar)
+ * Rendered as a clean rounded pill input (bg-white)
  * with search icon on left and clear button on right.
  */
 export default function SearchInput({
   value,
   onChange,
+  onKeyDown,
+  onFocus,
   onClear,
   placeholder = 'Search across all your clouds...',
   className = '',
@@ -38,8 +40,10 @@ export default function SearchInput({
         type="text"
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
+        onFocus={onFocus}
         placeholder={placeholder}
-        className={`w-full rounded-figma bg-sidebar border border-transparent hover:border-track focus:border-ink/20 focus:bg-white text-ink placeholder:text-muted focus:outline-none transition-colors duration-150 ${
+        className={`w-full rounded-figma bg-white border border-track/60 hover:border-track focus:border-ink/20 text-ink placeholder:text-muted focus:outline-none transition-colors duration-150 ${
           sizeClasses[size] || sizeClasses.md
         } ${inputClassName}`}
       />
@@ -55,3 +59,5 @@ export default function SearchInput({
     </div>
   );
 }
+
+

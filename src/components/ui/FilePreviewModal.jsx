@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   X,
   Download,
@@ -109,7 +109,7 @@ export default function FilePreviewModal({ isOpen, file, onClose }) {
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-        <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-6 relative shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+        <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-6 relative shadow-2xl max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -147,7 +147,7 @@ export default function FilePreviewModal({ isOpen, file, onClose }) {
             </div>
             <div className="max-w-full">
               <h3 className="text-base font-bold text-ink truncate px-2">{file.name}</h3>
-              <p className="text-xs text-muted mt-0.5">{file.size} � {(file.extension || 'file').toUpperCase()}</p>
+              <p className="text-xs text-muted mt-0.5">{file.size} • {(file.extension || 'file').toUpperCase()}</p>
             </div>
           </div>
 
@@ -273,3 +273,7 @@ export default function FilePreviewModal({ isOpen, file, onClose }) {
     </>
   );
 }
+
+
+
+

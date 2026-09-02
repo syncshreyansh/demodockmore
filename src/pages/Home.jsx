@@ -1,25 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  Upload,
   ArrowRight,
   Cloud,
   ChevronDown,
-  Folder,
-  FileText,
-  Search,
-  X,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import StatCard from '../components/ui/StatCard';
 import FolderCard from '../components/ui/FolderCard';
+import FileRow from '../components/ui/FileRow';
 import PillButton from '../components/ui/PillButton';
-import SearchInput from '../components/ui/SearchInput';
 import ProviderIcon from '../components/ui/ProviderIcon';
 import FilePreviewModal from '../components/ui/FilePreviewModal';
-import UploadModal from '../components/ui/UploadModal';
+import ShareModal from '../components/ui/ShareModal';
+import RenameModal from '../components/ui/RenameModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { useFiles } from '../hooks/useFiles';
-import { useAccounts } from '../hooks/useAccounts';
+import { useToast } from '../context/ToastContext';
 
 function StorageTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
@@ -28,9 +25,9 @@ function StorageTooltip({ active, payload }) {
   const isFreeSpace = data.provider === 'free' || data.name === 'Free Space';
 
   return (
-    <div className="bg-white/95 backdrop-blur-md border border-black/10 shadow-[0_4px_24px_rgba(0,0,0,0.14)] rounded-2xl p-3 min-w-[210px] text-ink select-none pointer-events-none transition-all duration-150 z-50">
+    <div className="bg-white/95 backdrop-blur-md border border-track/60 shadow-[0_4px_24px_rgba(0,0,0,0.14)] rounded-2xl p-3 min-w-[210px] text-ink select-none pointer-events-none transition-all duration-150 z-50">
       {/* Header: Icon/Dot + Provider Name + Amount badge */}
-      <div className="flex items-center justify-between gap-2 border-b border-black/5 pb-2 mb-2">
+      <div className="flex items-center justify-between gap-2 border-b border-track/40 pb-2 mb-2">
         <div className="flex items-center gap-2">
           {!isFreeSpace && data.provider ? (
             <ProviderIcon provider={data.provider} size="xs" />
@@ -52,67 +49,99 @@ function StorageTooltip({ active, payload }) {
         </span>
       </div>
 
-      {/* Account Info */}
-      {isFreeSpace ? (
-        <div className="text-[11px] text-muted leading-tight">
-          Available unallocated storage
-        </div>
-      ) : data.accounts && data.accounts.length > 0 ? (
-        <div className="flex flex-col gap-1.5">
-          {data.accounts.map((acc, idx) => (
-            <div key={idx} className="flex flex-col text-[11px] leading-tight">
-              <div className="flex items-center justify-between text-ink font-medium">
-                <span className="truncate max-w-[125px]">{acc.name || 'Account'}</span>
-                <span className="text-muted font-normal text-[10px]">{acc.used}</span>
-              </div>
-              <span className="text-muted text-[10px] truncate">{acc.email}</span>
+      {/* Account breakdown */}
+      {data.accounts && data.accounts.length > 0 ? (
+        <div className="flex flex-col gap-1.5 mt-1">
+          {data.accounts.map((acc, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between text-[11px] text-muted font-medium"
+            >
+              <span className="truncate max-w-[130px]">{acc.name}</span>
+              <span className="font-semibold text-ink">{acc.used}</span>
             </div>
           ))}
         </div>
-      ) : (
-        <div className="text-[11px] text-muted">
-          {data.used} GB used
-        </div>
-      )}
+      ) : isFreeSpace ? (
+        <p className="text-[11px] text-muted mt-1">
+          10 GB unallocated capacity across all clouds.
+        </p>
+      ) : null}
     </div>
   );
 }
 
 export default function Home() {
   const navigate = useNavigate();
-  const { files, folders, stats, loading } = useFiles();
-  const { user } = useAccounts();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('Folders');
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [previewFile, setPreviewFile] = useState(null);
-  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
-  const searchRef = useRef(null);
+  const { files, folders, stats, loading, downloadFile, deleteFile, renameFile, starFile } = useFiles();
+  const { showToast } = useToast();
 
-  const chartData = stats?.storageByProvider || [
+  const [filterType] = useState('All Folders');
+  const [activePreviewFile, setActivePreviewFile] = useState(null);
+  const [activeShareFile, setActiveShareFile] = useState(null);
+  const [activeRenameFile, setActiveRenameFile] = useState(null);
+  const [activeDeleteFile, setActiveDeleteFile] = useState(null);
+
+  const handleFileAction = (action, file) => {
+    switch (action) {
+      case 'preview':
+        setActivePreviewFile(file);
+        break;
+      case 'share':
+        setActiveShareFile(file);
+        break;
+      case 'rename':
+        setActiveRenameFile(file);
+        break;
+      case 'star':
+        starFile(file.id);
+        showToast(file.starred ? 'Removed from starred' : 'Added to starred', 'info');
+        break;
+      case 'delete':
+        setActiveDeleteFile(file);
+        break;
+      case 'download':
+        downloadFile(file);
+        showToast(`Downloading ${file.name}...`, 'success');
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (activeDeleteFile) {
+      deleteFile(activeDeleteFile.id);
+      showToast(`Deleted ${activeDeleteFile.name}`, 'info');
+      setActiveDeleteFile(null);
+    }
+  };
+
+  // Multi-cloud breakdown data
+  const chartData = [
     {
       name: 'Google Drive',
       provider: 'google-drive',
-      used: 17.5,
+      used: 15,
       color: '#00AC47',
       accounts: [
-        { name: 'Personal Drive', email: 'mailshreyanshhere@gmail.com', used: '7.5 GB' },
-        { name: 'Tech & Work', email: 'shreyanshgottech@gmail.com', used: '10 GB' },
+        { name: 'Personal (Gmail)', email: 'mailshreyanshhere@gmail.com', used: '12 GB' },
+        { name: 'Workspace (Dev)', email: 'dev.shreyansh@company.io', used: '3 GB' },
       ],
     },
     {
       name: 'MEGA',
       provider: 'mega',
-      used: 15,
+      used: 10,
       color: '#D9272E',
       accounts: [
-        { name: 'Archives & Media', email: 'mailshreyanshhere@gmail.com', used: '15 GB' },
+        { name: 'Vault Encrypted', email: 'sec.shreyansh@proton.me', used: '10 GB' },
       ],
     },
     {
       name: 'OneDrive',
       provider: 'onedrive',
-      used: 2.5,
+      used: 10,
       color: '#0078D4',
       accounts: [
         { name: 'Microsoft Work', email: 'reachbitsandgears@outlook.com', used: '2.5 GB' },
@@ -127,191 +156,26 @@ export default function Home() {
     },
   ];
 
-  // Close search dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setSearchDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const searchResults = React.useMemo(() => {
-    if (!searchQuery.trim()) return { files: [], folders: [] };
-    const q = searchQuery.toLowerCase().trim();
-
-    const matchedFiles = files.filter(
-      (f) =>
-        f.name.toLowerCase().includes(q) ||
-        f.accountEmail.toLowerCase().includes(q)
-    );
-
-    const matchedFolders = folders.filter((f) =>
-      f.name.toLowerCase().includes(q)
-    );
-
-    return { files: matchedFiles, folders: matchedFolders };
-  }, [searchQuery, files, folders]);
-
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-    setSearchDropdownOpen(true);
-  };
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      setSearchDropdownOpen(false);
-      navigate(`/files?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  const handleUploadClick = () => {
-    setShowUploadModal(true);
-  };
-
   return (
     <div className="flex flex-col gap-8">
-      {/* Split-background header */}
-      <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-        <div className="bg-white px-0 py-0 lg:flex-1 flex flex-col justify-center min-h-[78px]">
-          <h1 className="font-serif italic text-[38px] leading-none md:text-[46px] text-[#303030] font-bold tracking-[-0.038em]">
-            Good morning, {user?.name?.split(' ')[0] || 'Shreyansh'}
-          </h1>
-          <p className="font-sans text-sm md:text-[19px] leading-tight text-[#8a8a8a] mt-1">
-            Here's what's happening with your clouds today.
-          </p>
-        </div>
-
-        <div
-          ref={searchRef}
-          className="relative bg-white px-0 py-0 flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-[13px] lg:w-[657px] mt-[13px]"
-        >
-          <PillButton
-            variant="solid"
-            size="md"
-            rounded="full"
-            icon={Upload}
-            onClick={handleUploadClick}
-            className="shrink-0 h-[48px] w-[135px] lg:w-[135px] px-6 rounded-figma font-semibold shadow-[0_0_13.1px_3px_rgba(0,0,0,0.25)] hover:shadow active:scale-[0.98] transition-all"
-          >
-            Upload
-          </PillButton>
-
-          <div className="flex-1 min-w-0 relative">
-            <SearchInput
-              value={searchQuery}
-              onChange={handleSearch}
-              onKeyDown={handleSearchKeyDown}
-              onFocus={() => setSearchDropdownOpen(true)}
-              onClear={() => setSearchQuery('')}
-              placeholder="Search across all your clouds..."
-              className="w-full"
-              inputClassName="h-[48px] bg-[#252525]/10 hover:bg-[#252525]/15 focus:bg-white text-[15px]"
-            />
-
-            {/* Live Search Results Dropdown */}
-            {searchDropdownOpen && searchQuery.trim().length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.18)] border border-black/10 p-3 z-50 max-h-80 overflow-y-auto flex flex-col gap-2.5 animate-fade-in text-ink">
-                {searchResults.folders.length === 0 && searchResults.files.length === 0 ? (
-                  <div className="py-4 text-center text-xs text-muted">
-                    No results found for "{searchQuery}". Press Enter to search All Files.
-                  </div>
-                ) : (
-                  <>
-                    {/* Folders */}
-                    {searchResults.folders.length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted px-2">
-                          Folders
-                        </span>
-                        {searchResults.folders.map((folder) => (
-                          <div
-                            key={folder.id}
-                            onClick={() => {
-                              setSearchDropdownOpen(false);
-                              navigate(`/files?folder=${folder.id}`);
-                            }}
-                            className="flex items-center justify-between p-2 rounded-xl hover:bg-black/5 cursor-pointer transition-colors"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <Folder className="w-4 h-4 text-ink" />
-                              <span className="text-xs font-semibold uppercase">{folder.name}</span>
-                            </div>
-                            <ProviderIcon provider={folder.provider} size="xs" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Files */}
-                    {searchResults.files.length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted px-2">
-                          Files
-                        </span>
-                        {searchResults.files.map((file) => (
-                          <div
-                            key={file.id}
-                            onClick={() => {
-                              setSearchDropdownOpen(false);
-                              setPreviewFile(file);
-                            }}
-                            className="flex items-center justify-between p-2 rounded-xl hover:bg-black/5 cursor-pointer transition-colors"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                              <FileText className="w-4 h-4 text-muted shrink-0" />
-                              <span className="text-xs font-medium text-ink truncate">{file.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-[11px] text-muted">{file.size}</span>
-                              <ProviderIcon provider={file.provider} size="xs" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="border-t border-black/5 pt-2 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchDropdownOpen(false);
-                          navigate(`/files?search=${encodeURIComponent(searchQuery.trim())}`);
-                        }}
-                        className="text-xs font-semibold text-ink hover:underline flex items-center gap-1"
-                      >
-                        <span>View all results</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Asymmetric stats row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 md:gap-7">
         <div className="md:col-span-2 lg:col-span-6 bg-sidebar rounded-figma p-6 flex flex-col justify-between min-h-[190px] shadow-[0_0_4px_rgba(0,0,0,0.25)]">
           <div>
-            <h4 className="text-[30px] md:text-[37px] leading-none font-semibold tracking-[-0.048em] text-[#303030] font-sans">
+            <h4 className="text-[30px] md:text-[37px] leading-none font-semibold tracking-[-0.048em] text-ink font-sans">
               Total Storage
             </h4>
-            <p className="text-sm md:text-[19px] text-[#8a8a8a] font-normal mt-1">
+            <p className="text-sm md:text-[19px] text-muted font-normal mt-1">
               {stats?.connectedAccountsCount || 5} Accounts Connected
             </p>
           </div>
 
           <div className="flex items-end justify-between gap-4 mt-6">
             <div>
-              <div className="font-sans font-semibold text-[30px] md:text-[37px] leading-none text-[#303030] tracking-[-0.048em]">
+              <div className="font-sans font-semibold text-[30px] md:text-[37px] leading-none text-ink tracking-[-0.048em]">
                 {stats?.totalUsedGB || 35} GB
               </div>
-              <p className="text-xs text-[#303030] font-semibold mt-1">
+              <p className="text-xs text-ink font-semibold mt-1">
                 of {stats?.totalCapacityGB || 45} GB used.
               </p>
             </div>
@@ -357,8 +221,7 @@ export default function Home() {
             <PillButton
               to="/files"
               variant="solid"
-              size="sm"
-              rounded="full"
+              size="md"
               icon={ArrowRight}
               iconPosition="right"
               className="w-full sm:w-auto font-medium"
@@ -373,18 +236,18 @@ export default function Home() {
           className="md:col-span-1 lg:col-span-3 min-h-[190px]"
           value={`${stats?.totalTransfersCount || 5} Transfers`}
           valueBadge={
-            <div className="flex items-center gap-1 bg-ink text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
+            <div className="flex items-center gap-1 bg-ink text-white text-xs font-semibold px-2.5 py-0.5 rounded-figma">
               <span>1M</span>
               <ChevronDown className="w-3 h-3 text-white/70" />
             </div>
           }
-          valueSubtitle="happened last month."
+          valueSubtitle="Active Direct Pipelines"
+          icon={ArrowRight}
           action={
             <PillButton
               to="/transfers"
               variant="solid"
-              size="sm"
-              rounded="full"
+              size="md"
               icon={ArrowRight}
               iconPosition="right"
               className="w-full sm:w-auto font-medium"
@@ -395,10 +258,11 @@ export default function Home() {
         />
       </div>
 
-      {/* Recent folders */}
-      <section className="bg-sidebar rounded-figma p-7 flex flex-col gap-5 min-h-[300px]">
+      {/* Recent Folders and Files section */}
+      <section className="bg-sidebar rounded-figma p-7 flex flex-col gap-6 min-h-[300px]">
+        {/* Recent Folders Header */}
         <div className="flex flex-col gap-1">
-          <h2 className="font-sans font-semibold text-[30px] leading-none text-[#303030] tracking-[-0.048em]">Recent</h2>
+          <h2 className="font-sans font-semibold text-[30px] leading-none text-ink tracking-[-0.048em]">Recent</h2>
           <div className="inline-flex">
             <button
               type="button"
@@ -410,6 +274,7 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Folders Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {loading ? (
             <div className="col-span-full py-8 text-center text-sm text-muted">
@@ -425,24 +290,98 @@ export default function Home() {
             ))
           )}
         </div>
+
+        {/* Recent Files Subsection */}
+        <div className="flex flex-col gap-3 pt-6 border-t border-track/40">
+          {/* Subheader: All Files selector + View all action */}
+          <div className="flex items-center justify-between">
+            <div className="inline-flex">
+              <button
+                type="button"
+                className="flex items-center gap-1 text-xs font-semibold text-muted hover:text-ink transition-colors duration-150"
+              >
+                <span>All Files</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/files')}
+              className="text-xs font-semibold text-ink hover:underline flex items-center gap-1"
+            >
+              <span>View all</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Files List */}
+          <div className="flex flex-col gap-2">
+            {loading ? (
+              <div className="py-6 text-center text-xs text-muted">
+                Loading recent files...
+              </div>
+            ) : files.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted">
+                No recent files
+              </div>
+            ) : (
+              files.slice(0, 5).map((file) => (
+                <FileRow
+                  key={file.id}
+                  file={file}
+                  onAction={handleFileAction}
+                  onSelect={() => handleFileAction('preview', file)}
+                />
+              ))
+            )}
+          </div>
+        </div>
       </section>
 
-      {/* File Preview Modal */}
-      {previewFile && (
+      {/* Modals for file actions */}
+      {activePreviewFile && (
         <FilePreviewModal
-          isOpen={Boolean(previewFile)}
-          file={previewFile}
-          onClose={() => setPreviewFile(null)}
+          isOpen={Boolean(activePreviewFile)}
+          file={activePreviewFile}
+          onClose={() => setActivePreviewFile(null)}
         />
       )}
 
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <UploadModal
-          isOpen={showUploadModal}
-          onClose={() => setShowUploadModal(false)}
+      {activeShareFile && (
+        <ShareModal
+          isOpen={Boolean(activeShareFile)}
+          file={activeShareFile}
+          onClose={() => setActiveShareFile(null)}
+        />
+      )}
+
+      {activeRenameFile && (
+        <RenameModal
+          isOpen={Boolean(activeRenameFile)}
+          initialName={activeRenameFile.name}
+          title="Rename File"
+          onRename={(newName) => {
+            renameFile(activeRenameFile.id, newName);
+            showToast(`Renamed file to "${newName}"`, 'success');
+            setActiveRenameFile(null);
+          }}
+          onClose={() => setActiveRenameFile(null)}
+        />
+      )}
+
+      {activeDeleteFile && (
+        <ConfirmModal
+          isOpen={Boolean(activeDeleteFile)}
+          title="Delete File"
+          message={`Are you sure you want to delete "${activeDeleteFile.name}"?`}
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setActiveDeleteFile(null)}
         />
       )}
     </div>
   );
 }
+

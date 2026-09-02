@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+ï»¿import React, { useState, useRef, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import gsap from 'gsap';
 import AppProviders from './context/AppProviders';
@@ -17,7 +17,7 @@ export default function App() {
   const handleExitStart = useCallback(() => {
     if (!contentRef.current) return;
 
-    // Content crossfade — overlaps loader exit
+    // Content crossfade - overlaps loader exit
     gsap.fromTo(
       contentRef.current,
       { opacity: 0, scale: 0.98 },
@@ -67,3 +67,5 @@ export default function App() {
     </AppProviders>
   );
 }
+
+

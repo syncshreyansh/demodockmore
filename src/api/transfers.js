@@ -1,4 +1,4 @@
-import { mockTransfers } from './mockData';
+﻿import { mockTransfers } from './mockData';
 
 let transfersStore = [...mockTransfers];
 
@@ -31,3 +31,5 @@ export async function createTransfer(transferData) {
     }, 100);
   });
 }
+
+

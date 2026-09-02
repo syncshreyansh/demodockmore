@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ToastProvider } from './ToastContext';
 import { AccountsProvider } from './AccountsContext';
 import { FilesProvider } from './FilesContext';
@@ -17,3 +17,4 @@ export default function AppProviders({ children }) {
     </ToastProvider>
   );
 }
+

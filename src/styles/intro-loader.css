@@ -1,4 +1,4 @@
-/* Siffonn — used by IntroLoader wordmark */
+﻿/* Siffonn â€” used by IntroLoader wordmark */
 @font-face {
   font-family: 'Siffonn';
   src:
@@ -16,7 +16,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #262626;
+  background-color: #303030;
   color: #fcece1;
   will-change: opacity;
 }
@@ -28,7 +28,7 @@
   transform-origin: center center;
   font-family: 'Siffonn', sans-serif;
   font-weight: 700;
-  /* Smaller than before — closer to reference frame proportions */
+  /* Smaller than before â€” closer to reference frame proportions */
   font-size: clamp(1.75rem, 5vw, 3rem);
   line-height: 1;
   letter-spacing: -0.02em;
@@ -58,3 +58,4 @@
 .intro-loader__letter--m.is-revealed {
   transform: translateY(0);
 }
+

@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-ink font-sans;
+  }
+}
+
+/* Custom scrollbar to match the warm clean aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D9D8D6;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8A8785;
+}
+
+/* The sidebar scrollbar is visible only while its scroll area is hovered. */
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  transition: background-color 180ms ease-in-out;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: #D9D8D6;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background: #8A8785;
+}

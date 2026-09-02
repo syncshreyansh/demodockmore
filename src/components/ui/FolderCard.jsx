@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Folder, MoreVertical, FolderOpen, Edit3, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RenameModal from './RenameModal';
@@ -71,6 +71,11 @@ export default function FolderCard({ folder, onClick, className = '' }) {
         {/* Front Folder Card: inverts to ink (#303030) on hover */}
         <div
           onClick={handleCardClick}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenuOpen(true);
+          }}
           className="relative z-10 bg-white group-hover:bg-ink rounded-figma p-5 flex items-center justify-between min-h-[86px] shadow-sm transition-colors duration-150 ease-out"
         >
           {/* Left: Folder icon + Name */}
@@ -145,15 +150,13 @@ export default function FolderCard({ folder, onClick, className = '' }) {
         </div>
       </div>
 
-      {showRename && (
-        <RenameModal
-          isOpen={showRename}
-          initialName={folder.name}
-          title="Rename Folder"
-          onRename={handleRename}
-          onClose={() => setShowRename(false)}
-        />
-      )}
+      <RenameModal
+        isOpen={showRename}
+        initialName={folder.name}
+        title="Rename Folder"
+        onRename={handleRename}
+        onClose={() => setShowRename(false)}
+      />
 
       <ConfirmModal
         isOpen={showDeleteConfirm}

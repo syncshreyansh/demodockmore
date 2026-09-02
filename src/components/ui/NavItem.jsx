@@ -1,9 +1,10 @@
 ﻿import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 /**
  * NavItem
- * Active: solid #303030 pill with white text/icon.
+ * Active: solid #303030 pill with white text/icon (animated via framer-motion layoutId).
  * Inactive: transparent background with #1A1A1A text/icon and subtle hover.
  */
 export default function NavItem({
@@ -20,27 +21,34 @@ export default function NavItem({
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `group flex items-center justify-start px-4 py-3 rounded-figma font-semibold text-[15px] transition-colors duration-150 select-none mx-1 w-[calc(100%-0.5rem)] ${
+        `relative group flex items-center justify-start px-4 py-3 text-[15px] transition-colors duration-150 select-none mx-1 w-[calc(100%-0.5rem)] ${
           isActive
-            ? 'bg-[#303030] text-white font-semibold shadow-none'
-            : 'text-ink hover:bg-black/5'
+            ? 'text-white font-semibold shadow-none'
+            : 'text-ink font-semibold hover:bg-black/5 rounded-figma'
         } ${className}`
       }
     >
       {({ isActive }) => (
-        <div className="flex items-center gap-3">
-          {Icon && (
-            <Icon
-              className={`w-[18px] h-[18px] stroke-[2] shrink-0 transition-colors duration-150 ${
-                isActive ? 'text-white' : 'text-ink'
-              }`}
+        <>
+          {isActive && (
+            <motion.div
+              layoutId="sidebarNavIndicator"
+              className="absolute inset-0 bg-[#303030] rounded-figma z-0"
+              transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
             />
           )}
-          <span className="truncate">{label}</span>
-        </div>
+          <div className="relative z-10 flex items-center gap-3">
+            {Icon && (
+              <Icon
+                className={`w-[18px] h-[18px] stroke-[2] shrink-0 transition-colors duration-150 ${
+                  isActive ? 'text-white' : 'text-ink'
+                }`}
+              />
+            )}
+            <span className="truncate">{label}</span>
+          </div>
+        </>
       )}
     </NavLink>
   );
 }
-
-

@@ -20,7 +20,7 @@ import ProviderIcon from './ProviderIcon';
 /**
  * File icon mapper based on extension
  */
-function getFileIcon(extension = '') {
+export function getFileIcon(extension = '') {
   const ext = extension.toLowerCase().replace('.', '');
   switch (ext) {
     case 'png':
@@ -103,6 +103,11 @@ export default function FileRow({
   return (
     <div
       onClick={onSelect}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setMenuOpen(true);
+      }}
       className={`group flex items-center justify-between py-3 px-4 rounded-xl cursor-pointer select-none transition-all duration-150 ease-out ${
         isSelected
           ? 'bg-white hover:bg-[#303030] ring-2 ring-ink shadow-sm'

@@ -1,17 +1,15 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Plus,
   RefreshCw,
   Trash2,
-  ExternalLink,
-  ShieldCheck,
-  X,
-  Loader2,
 } from 'lucide-react';
 import ProviderIcon from '../components/ui/ProviderIcon';
 import ProgressBar from '../components/ui/ProgressBar';
 import PillButton from '../components/ui/PillButton';
+import SyncButton from '../components/ui/SyncButton';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import ConnectAccountModal from '../components/ui/ConnectAccountModal';
 import { useAccounts } from '../hooks/useAccounts';
 import { useToast } from '../context/ToastContext';
 
@@ -157,16 +155,9 @@ export default function Accounts() {
 
                 {/* Bottom Actions */}
                 <div className="mt-6 pt-4 border-t border-track/50 flex items-center justify-between gap-2">
-                  <PillButton
-                    variant="ghost"
-                    size="xs"
-                    icon={RefreshCw}
-                    disabled={isSyncing}
-                    onClick={() => handleSync(account.id, account.name)}
-                    className={isSyncing ? 'animate-spin' : ''}
-                  >
-                    {isSyncing ? 'Syncing...' : 'Sync now'}
-                  </PillButton>
+                  <SyncButton
+                    onSync={() => handleSync(account.id, account.name)}
+                  />
 
                   <PillButton
                     variant="danger"
@@ -201,83 +192,18 @@ export default function Accounts() {
       </div>
 
       {/* Connect Account Modal */}
-      {showConnectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-ink">Connect Cloud Account</h3>
-                <p className="text-xs text-muted mt-0.5">
-                  Select a provider to authenticate with OAuth 2.0.
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={Boolean(connectingProviderId)}
-                onClick={() => setShowConnectModal(false)}
-                className="p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-2.5">
-              {[
-                { name: 'Google Drive', id: 'google-drive', desc: 'Personal & Google Workspace' },
-                { name: 'Microsoft OneDrive', id: 'onedrive', desc: 'Personal & Microsoft 365' },
-                { name: 'Dropbox', id: 'dropbox', desc: 'Dropbox Personal & Business' },
-                { name: 'MEGA', id: 'mega', desc: 'Encrypted Cloud Storage' },
-              ].map((prov) => {
-                const isConnecting = connectingProviderId === prov.id;
-
-                return (
-                  <button
-                    key={prov.id}
-                    type="button"
-                    disabled={Boolean(connectingProviderId)}
-                    onClick={() => handleProviderSelect(prov)}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-colors duration-150 ${
-                      isConnecting
-                        ? 'bg-ink text-white border-ink'
-                        : 'bg-white hover:bg-black/5 border-track'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <ProviderIcon provider={prov.id} size="md" />
-                      <div>
-                        <p className={`text-sm font-bold ${isConnecting ? 'text-white' : 'text-ink'}`}>
-                          {prov.name}
-                        </p>
-                        <p className={`text-xs ${isConnecting ? 'text-white/80' : 'text-muted'}`}>
-                          {isConnecting ? 'Authenticating via OAuth 2.0...' : prov.desc}
-                        </p>
-                      </div>
-                    </div>
-                    {isConnecting ? (
-                      <Loader2 className="w-4 h-4 text-white animate-spin" />
-                    ) : (
-                      <ExternalLink className="w-4 h-4 text-muted" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2 text-[11px] text-muted bg-track/30 p-3 rounded-xl">
-              <ShieldCheck className="w-4 h-4 text-ink shrink-0" />
-              <span>
-                dockMore operates in read/write proxy mode. Your credentials never touch our servers directly.
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConnectAccountModal
+        isOpen={showConnectModal}
+        onClose={() => setShowConnectModal(false)}
+        connectingProviderId={connectingProviderId}
+        onProviderSelect={handleProviderSelect}
+      />
 
       {/* Disconnect Confirmation Modal */}
       <ConfirmModal
         isOpen={disconnectModalState.isOpen}
         title="Disconnect Account"
-        message={`Are you sure you want to disconnect ${disconnectModalState.name}? Its files will be unindexed from your unified dashboard.`}
+        message={`Are you sure you want to delete/disconnect ${disconnectModalState.name}? Its files will be unindexed from your unified dashboard.`}
         confirmLabel="Disconnect"
         variant="danger"
         onConfirm={handleConfirmDisconnect}
@@ -286,7 +212,3 @@ export default function Accounts() {
     </div>
   );
 }
-
-
-
-

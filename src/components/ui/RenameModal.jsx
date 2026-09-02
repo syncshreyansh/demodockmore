@@ -1,5 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Edit3 } from 'lucide-react';
+import SlideUpModal from './SlideUpModal';
 import PillButton from './PillButton';
 
 export default function RenameModal({
@@ -12,10 +13,10 @@ export default function RenameModal({
   const [name, setName] = useState(initialName);
 
   useEffect(() => {
-    setName(initialName);
+    if (initialName) {
+      setName(initialName);
+    }
   }, [initialName, isOpen]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -25,54 +26,53 @@ export default function RenameModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl ">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-track/30 flex items-center justify-center text-ink shrink-0">
-              <Edit3 className="w-4 h-4" />
-            </div>
-            <h3 className="text-lg font-bold text-ink">{title}</h3>
+    <SlideUpModal
+      isOpen={isOpen}
+      onClose={onClose}
+      panelClassName="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-track/30 flex items-center justify-center text-ink shrink-0">
+            <Edit3 className="w-4 h-4" />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <h3 className="text-lg font-bold text-ink">{title}</h3>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="group p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150 shrink-0"
+          aria-label="Close modal"
+        >
+          <X className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-ink mb-1.5">
+            New Name
+          </label>
+          <input
+            type="text"
+            required
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm text-sm text-ink focus:outline-none focus:ring-1 focus:ring-ink/20"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-ink mb-1.5">
-              New Name
-            </label>
-            <input
-              type="text"
-              required
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-white border border-track text-sm text-ink focus:outline-none focus:border-ink"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-track/60">
-            <PillButton variant="ghost" size="sm" onClick={onClose}>
-              Cancel
-            </PillButton>
-            <PillButton variant="solid" size="sm" type="submit">
-              Save
-            </PillButton>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex items-center justify-end gap-2.5 pt-3">
+          <PillButton variant="ghost" size="sm" onClick={onClose}>
+            Cancel
+          </PillButton>
+          <PillButton variant="solid" size="sm" type="submit">
+            Save Changes
+          </PillButton>
+        </div>
+      </form>
+    </SlideUpModal>
   );
 }
-
-
-
 

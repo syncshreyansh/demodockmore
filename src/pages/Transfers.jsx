@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   ArrowRight,
   ArrowLeftRight,
@@ -12,9 +13,18 @@ import {
 import ProviderIcon from '../components/ui/ProviderIcon';
 import ProgressBar from '../components/ui/ProgressBar';
 import PillButton from '../components/ui/PillButton';
+import SlideUpModal from '../components/ui/SlideUpModal';
+import CustomSelect from '../components/ui/CustomSelect';
 import { useTransfers } from '../hooks/useTransfers';
 import { useAccounts } from '../hooks/useAccounts';
 import { useToast } from '../context/ToastContext';
+
+const PROVIDER_OPTIONS = [
+  { value: 'google-drive', label: 'Google Drive' },
+  { value: 'onedrive', label: 'OneDrive' },
+  { value: 'mega', label: 'MEGA' },
+  { value: 'dropbox', label: 'Dropbox' },
+];
 
 export default function Transfers() {
   const [filterTab, setFilterTab] = useState('all'); // 'all', 'in_progress', 'completed'
@@ -30,46 +40,48 @@ export default function Transfers() {
     sourceProvider: 'google-drive',
     sourceAccount: 'mailshreyanshhere@gmail.com',
     destinationProvider: 'onedrive',
-    destinationAccount: 'reachbitsandgears@outlook.com',
+    destinationAccount: 'work@domain.com',
   });
 
-  const handleCreateTransfer = async (e) => {
+  const handleCreateTransfer = (e) => {
     e.preventDefault();
-    if (!formData.filename) return;
+    if (!formData.filename.trim()) {
+      showToast('Please enter a file name.', 'error');
+      return;
+    }
 
-    await addTransfer({
-      filename: formData.filename,
-      size: formData.size,
+    addTransfer({
+      filename: formData.filename.trim(),
+      size: formData.size || '50 MB',
       sourceProvider: formData.sourceProvider,
       sourceAccount: formData.sourceAccount,
       destinationProvider: formData.destinationProvider,
       destinationAccount: formData.destinationAccount,
     });
 
-    showToast(`Transfer started for "${formData.filename}"`, 'success');
-
+    showToast(`Started direct transfer for "${formData.filename}"`, 'success');
+    setShowModal(false);
     setFormData({
       filename: '',
       size: '120 MB',
       sourceProvider: 'google-drive',
-      sourceAccount: accounts[0]?.email || 'mailshreyanshhere@gmail.com',
+      sourceAccount: 'mailshreyanshhere@gmail.com',
       destinationProvider: 'onedrive',
-      destinationAccount: accounts.find((a) => a.provider === 'onedrive')?.email || 'reachbitsandgears@outlook.com',
+      destinationAccount: 'work@domain.com',
     });
-    setShowModal(false);
   };
 
   const handleCancelTransfer = (id, filename) => {
     cancelTransfer(id);
-    showToast(`Cancelled transfer of "${filename}"`, 'info');
+    showToast(`Cancelled transfer "${filename}"`, 'info');
   };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Top Filter Tabs & New Transfer Action Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-2 select-none">
+      {/* Top Controls Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Tab Filters */}
+        <div className="flex items-center gap-1.5 p-1 bg-track/40 rounded-figma select-none">
           {[
             { id: 'all', label: 'All Transfers' },
             { id: 'in_progress', label: 'Active Jobs' },
@@ -81,13 +93,18 @@ export default function Transfers() {
                 key={tab.id}
                 type="button"
                 onClick={() => setFilterTab(tab.id)}
-                className={`px-4 py-2 rounded-figma text-xs font-semibold transition-colors duration-150 ${
-                  isActive
-                    ? 'bg-ink text-white'
-                    : 'bg-surface text-ink hover:bg-white'
+                className={`relative px-4 py-2 text-xs font-semibold transition-colors duration-150 ${
+                  isActive ? 'text-white' : 'text-ink hover:bg-white rounded-figma'
                 }`}
               >
-                {tab.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="transfersTabIndicator"
+                    className="absolute inset-0 bg-ink rounded-figma z-0"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-10">{tab.label}</span>
               </button>
             );
           })}
@@ -155,7 +172,7 @@ export default function Transfers() {
                         {item.filename}
                       </h4>
                       <p className="text-xs text-muted truncate mt-0.5 font-medium">
-                        {item.sourceAccount} â†’ {item.destinationAccount}
+                        {item.sourceAccount} → {item.destinationAccount}
                       </p>
                     </div>
                   </div>
@@ -180,38 +197,35 @@ export default function Transfers() {
                       type="button"
                       onClick={() => handleCancelTransfer(item.id, item.filename)}
                       className="p-1.5 rounded-full text-muted hover:text-red-600 hover:bg-black/5 transition-colors"
-                      title="Remove job"
+                      title={isCompleted ? 'Clear log' : 'Cancel transfer'}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Bottom Row: Progress Bar & Meta */}
-                <div className="flex flex-col gap-1.5 pt-1">
-                  {!isCompleted && (
+                {/* Progress bar (if not completed) */}
+                {!isCompleted && (
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <div className="flex items-center justify-between text-xs text-muted">
+                      <span>{item.transferred} of {item.size}</span>
+                      <span className="font-semibold text-ink">{item.progress}%</span>
+                    </div>
                     <ProgressBar
                       value={item.progress}
                       max={100}
                       height="h-2"
-                      className="w-full"
+                      fillClassName="bg-ink"
                     />
-                  )}
-
-                  <div className="flex items-center justify-between text-xs text-muted font-medium">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{item.timestamp}</span>
+                    <div className="flex items-center justify-between text-[11px] text-muted mt-0.5">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        ETA: {item.eta || 'Calculating...'}
+                      </span>
+                      <span>Encrypted direct pipeline</span>
                     </div>
-
-                    {!isCompleted && (
-                      <div className="flex items-center gap-3 text-ink font-semibold">
-                        <span>{item.progress}%</span>
-                        {item.eta && <span className="text-muted font-normal">â€¢ {item.eta}</span>}
-                      </div>
-                    )}
                   </div>
-                </div>
+                )}
               </div>
             );
           })
@@ -219,128 +233,110 @@ export default function Transfers() {
       </div>
 
       {/* New Transfer Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-ink">New Cloud Transfer</h3>
-                <p className="text-xs text-muted mt-0.5">
-                  Transfer files between any connected cloud account directly.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150"
-                aria-label="Close modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      <SlideUpModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        panelClassName="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-ink">New Cloud Transfer</h3>
+            <p className="text-xs text-muted mt-0.5">
+              Transfer files between any connected cloud account directly.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowModal(false)}
+            className="group p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150 shrink-0"
+            aria-label="Close modal"
+          >
+            <X className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
+          </button>
+        </div>
+
+        <form onSubmit={handleCreateTransfer} className="flex flex-col gap-4" noValidate>
+          <div>
+            <label className="block text-xs font-semibold text-ink mb-1.5">
+              File Name
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Design_System_Export_2026.zip"
+              value={formData.filename}
+              onChange={(e) =>
+                setFormData({ ...formData, filename: e.target.value })
+              }
+              className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm text-sm text-ink focus:outline-none focus:ring-1 focus:ring-ink/20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink mb-1.5">
+              File Size (Estimate)
+            </label>
+            <input
+              type="text"
+              value={formData.size}
+              onChange={(e) =>
+                setFormData({ ...formData, size: e.target.value })
+              }
+              className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm text-sm text-ink focus:outline-none focus:ring-1 focus:ring-ink/20"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1.5">
+                Source Cloud
+              </label>
+              <CustomSelect
+                value={formData.sourceProvider}
+                onChange={(val) => {
+                  const acc = accounts.find((a) => a.provider === val);
+                  setFormData({
+                    ...formData,
+                    sourceProvider: val,
+                    sourceAccount: acc ? acc.email : formData.sourceAccount,
+                  });
+                }}
+                options={PROVIDER_OPTIONS}
+              />
             </div>
 
-            <form onSubmit={handleCreateTransfer} className="flex flex-col gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">
-                  File Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Design_System_Export_2026.zip"
-                  value={formData.filename}
-                  onChange={(e) =>
-                    setFormData({ ...formData, filename: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-track text-sm text-ink focus:outline-none focus:border-ink"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">
-                  File Size (Estimate)
-                </label>
-                <input
-                  type="text"
-                  value={formData.size}
-                  onChange={(e) =>
-                    setFormData({ ...formData, size: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-track text-sm text-ink focus:outline-none focus:border-ink"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-ink mb-1.5">
-                    Source Cloud
-                  </label>
-                  <select
-                    value={formData.sourceProvider}
-                    onChange={(e) => {
-                      const prov = e.target.value;
-                      const acc = accounts.find((a) => a.provider === prov);
-                      setFormData({
-                        ...formData,
-                        sourceProvider: prov,
-                        sourceAccount: acc ? acc.email : formData.sourceAccount,
-                      });
-                    }}
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-track text-sm text-ink focus:outline-none focus:border-ink cursor-pointer"
-                  >
-                    <option value="google-drive">Google Drive</option>
-                    <option value="onedrive">OneDrive</option>
-                    <option value="mega">MEGA</option>
-                    <option value="dropbox">Dropbox</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-ink mb-1.5">
-                    Destination Cloud
-                  </label>
-                  <select
-                    value={formData.destinationProvider}
-                    onChange={(e) => {
-                      const prov = e.target.value;
-                      const acc = accounts.find((a) => a.provider === prov);
-                      setFormData({
-                        ...formData,
-                        destinationProvider: prov,
-                        destinationAccount: acc ? acc.email : formData.destinationAccount,
-                      });
-                    }}
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-track text-sm text-ink focus:outline-none focus:border-ink cursor-pointer"
-                  >
-                    <option value="onedrive">OneDrive</option>
-                    <option value="google-drive">Google Drive</option>
-                    <option value="mega">MEGA</option>
-                    <option value="dropbox">Dropbox</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-track/60">
-                <PillButton
-                  variant="ghost"
-                  size="md"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </PillButton>
-                <PillButton variant="solid" size="md" type="submit">
-                  Start Transfer
-                </PillButton>
-              </div>
-            </form>
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1.5">
+                Destination Cloud
+              </label>
+              <CustomSelect
+                value={formData.destinationProvider}
+                onChange={(val) => {
+                  const acc = accounts.find((a) => a.provider === val);
+                  setFormData({
+                    ...formData,
+                    destinationProvider: val,
+                    destinationAccount: acc ? acc.email : formData.destinationAccount,
+                  });
+                }}
+                options={PROVIDER_OPTIONS}
+              />
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="flex items-center justify-end gap-3 mt-4 pt-4">
+            <PillButton
+              variant="ghost"
+              size="md"
+              onClick={() => setShowModal(false)}
+            >
+              Cancel
+            </PillButton>
+            <PillButton variant="solid" size="md" type="submit">
+              Start Transfer
+            </PillButton>
+          </div>
+        </form>
+      </SlideUpModal>
     </div>
   );
 }
-
-
-
-
-

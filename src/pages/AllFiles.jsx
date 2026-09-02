@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   FolderPlus,
   ChevronRight,
@@ -10,8 +11,11 @@ import {
   Download,
   Share2,
   Edit3,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import FileRow from '../components/ui/FileRow';
+import FileGridCard from '../components/ui/FileGridCard';
 import PillButton from '../components/ui/PillButton';
 import ProviderIcon from '../components/ui/ProviderIcon';
 import FilePreviewModal from '../components/ui/FilePreviewModal';
@@ -20,6 +24,7 @@ import RenameModal from '../components/ui/RenameModal';
 import MoveModal from '../components/ui/MoveModal';
 import CreateFolderModal from '../components/ui/CreateFolderModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import CustomSelect from '../components/ui/CustomSelect';
 import { useFiles } from '../hooks/useFiles';
 import { useToast } from '../context/ToastContext';
 
@@ -52,6 +57,7 @@ export default function AllFiles() {
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [searchQuery, setSearchQuery] = useState(searchParam || '');
   const [sortBy, setSortBy] = useState('modified'); // 'name', 'size', 'modified'
+  const [viewMode, setViewMode] = useState('grid'); // 'list', 'grid'
   const [selectedIds, setSelectedIds] = useState([]);
 
   // Modals state
@@ -233,10 +239,11 @@ export default function AllFiles() {
         </div>
 
         <PillButton
-          variant="ghost"
+          variant="solid"
           size="md"
           icon={FolderPlus}
           onClick={() => setShowCreateFolderModal(true)}
+          className="font-semibold shadow-sm hover:shadow active:scale-[0.98] transition-all"
         >
           New Folder
         </PillButton>
@@ -251,16 +258,23 @@ export default function AllFiles() {
               key={filter.id}
               type="button"
               onClick={() => setSelectedProvider(filter.id)}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-figma text-xs font-semibold shrink-0 transition-colors duration-150 ${
-                isActive
-                  ? 'bg-ink text-white'
-                  : 'bg-surface text-ink hover:bg-white'
+              className={`relative flex items-center gap-2 px-5 py-2.5 text-sm font-bold shrink-0 transition-colors duration-150 ${
+                isActive ? 'text-white' : 'text-ink hover:bg-white rounded-xl'
               }`}
             >
-              {filter.icon && (
-                <ProviderIcon provider={filter.icon} size="xs" />
+              {isActive && (
+                <motion.div
+                  layoutId="filesTabIndicator"
+                  className="absolute inset-0 bg-ink rounded-xl z-0"
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                />
               )}
-              <span>{filter.label}</span>
+              <span className="relative z-10 flex items-center gap-2">
+                {filter.icon && (
+                  <ProviderIcon provider={filter.icon} size="sm" />
+                )}
+                {filter.label}
+              </span>
             </button>
           );
         })}
@@ -329,50 +343,77 @@ export default function AllFiles() {
             {searchQuery && ` matching "${searchQuery}"`}
           </span>
 
-          <div className="flex items-center gap-2">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-xs font-semibold bg-transparent text-ink focus:outline-none cursor-pointer"
-            >
-              <option value="modified">Sort by Recent</option>
-              <option value="name">Sort by Name</option>
-              <option value="size">Sort by Size</option>
-            </select>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center bg-white border border-track/60 rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'grid' ? 'bg-surface text-ink' : 'text-muted hover:text-ink'
+                }`}
+                title="Grid view"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'list' ? 'bg-surface text-ink' : 'text-muted hover:text-ink'
+                }`}
+                title="List view"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="w-[160px]">
+              <CustomSelect
+                value={sortBy}
+                onChange={(val) => setSortBy(val)}
+                options={[
+                  { value: 'modified', label: 'Sort by Recent' },
+                  { value: 'name', label: 'Sort by Name' },
+                  { value: 'size', label: 'Sort by Size' },
+                ]}
+              />
+            </div>
           </div>
         </div>
       )}
 
       {/* Files List Table */}
       <div className="flex flex-col gap-2">
-        {/* Table Header */}
-        <div className="flex items-center justify-between px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none">
-          <div className="flex items-center gap-3 flex-1">
-            <div
-              onClick={handleSelectAll}
-              className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                selectedIds.length > 0 && selectedIds.length === filteredFiles.length
-                  ? 'bg-ink border-ink text-white'
-                  : 'border-track hover:border-ink/50 bg-white'
-              }`}
-              title="Select all"
-            >
-              {selectedIds.length > 0 && selectedIds.length === filteredFiles.length && (
-                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-              )}
+        {/* Table Header (shown only in list mode) */}
+        {viewMode === 'list' && (
+          <div className="flex items-center justify-between px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none">
+            <div className="flex items-center gap-3 flex-1">
+              <div
+                onClick={handleSelectAll}
+                className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                  selectedIds.length > 0 && selectedIds.length === filteredFiles.length
+                    ? 'bg-ink border-ink text-white'
+                    : 'border-track hover:border-ink/50 bg-white'
+                }`}
+                title="Select all"
+              >
+                {selectedIds.length > 0 && selectedIds.length === filteredFiles.length && (
+                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                )}
+              </div>
+              <span>Name & Location</span>
             </div>
-            <span>Name & Location</span>
-          </div>
 
-          <div className="flex items-center gap-6 shrink-0">
-            <span className="hidden sm:inline-block w-28">Cloud</span>
-            <span className="w-20 text-right">Size</span>
-            <span className="hidden md:inline-block w-32 text-right">Modified</span>
-            <span className="w-20 text-right">Actions</span>
+            <div className="flex items-center gap-6 shrink-0">
+              <span className="hidden sm:inline-block w-28">Cloud</span>
+              <span className="w-20 text-right">Size</span>
+              <span className="hidden md:inline-block w-32 text-right">Modified</span>
+              <span className="w-20 text-right">Actions</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Rows */}
+        {/* Rows / Cards */}
         {loading ? (
           <div className="bg-surface rounded-2xl py-12 text-center text-sm text-muted">
             Loading cloud files...
@@ -396,6 +437,19 @@ export default function AllFiles() {
               </PillButton>
             )}
           </div>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-2">
+            {filteredFiles.map((file) => (
+              <FileGridCard
+                key={file.id}
+                file={file}
+                isSelected={selectedIds.includes(file.id)}
+                onToggleSelect={handleToggleSelect}
+                onAction={handleFileAction}
+                onSelect={() => handleFileAction('preview', file)}
+              />
+            ))}
+          </div>
         ) : (
           filteredFiles.map((file) => (
             <FileRow
@@ -411,54 +465,47 @@ export default function AllFiles() {
       </div>
 
       {/* Global Modals */}
-      {activePreviewFile && (
-        <FilePreviewModal
-          isOpen={Boolean(activePreviewFile)}
-          file={activePreviewFile}
-          onClose={() => setActivePreviewFile(null)}
-        />
-      )}
+      {/* File Action Modals */}
+      <FilePreviewModal
+        isOpen={Boolean(activePreviewFile)}
+        file={activePreviewFile}
+        onClose={() => setActivePreviewFile(null)}
+      />
 
-      {activeShareFile && (
-        <ShareModal
-          isOpen={Boolean(activeShareFile)}
-          file={activeShareFile}
-          onClose={() => setActiveShareFile(null)}
-        />
-      )}
+      <ShareModal
+        isOpen={Boolean(activeShareFile)}
+        file={activeShareFile}
+        onClose={() => setActiveShareFile(null)}
+      />
 
-      {activeRenameFile && (
-        <RenameModal
-          isOpen={Boolean(activeRenameFile)}
-          initialName={activeRenameFile.name}
-          title="Rename File"
-          onRename={(newName) => {
+      <RenameModal
+        isOpen={Boolean(activeRenameFile)}
+        initialName={activeRenameFile?.name || ''}
+        title="Rename File"
+        onRename={(newName) => {
+          if (activeRenameFile) {
             renameFile(activeRenameFile.id, newName);
             showToast(`Renamed file to "${newName}"`, 'success');
-            setActiveRenameFile(null);
-          }}
-          onClose={() => setActiveRenameFile(null)}
-        />
-      )}
+          }
+          setActiveRenameFile(null);
+        }}
+        onClose={() => setActiveRenameFile(null)}
+      />
 
-      {showMoveModal && (
-        <MoveModal
-          isOpen={showMoveModal}
-          fileCount={movingFileIds.length}
-          onMove={handleExecuteMove}
-          onClose={() => {
-            setShowMoveModal(false);
-            setMovingFileIds([]);
-          }}
-        />
-      )}
+      <MoveModal
+        isOpen={showMoveModal}
+        fileCount={movingFileIds.length}
+        onMove={handleExecuteMove}
+        onClose={() => {
+          setShowMoveModal(false);
+          setMovingFileIds([]);
+        }}
+      />
 
-      {showCreateFolderModal && (
-        <CreateFolderModal
-          isOpen={showCreateFolderModal}
-          onClose={() => setShowCreateFolderModal(false)}
-        />
-      )}
+      <CreateFolderModal
+        isOpen={showCreateFolderModal}
+        onClose={() => setShowCreateFolderModal(false)}
+      />
 
       <ConfirmModal
         isOpen={deleteConfirmState.isOpen}

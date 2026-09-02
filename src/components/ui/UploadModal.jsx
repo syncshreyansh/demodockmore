@@ -1,5 +1,7 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Upload, File, CheckCircle2, Cloud, Folder } from 'lucide-react';
+import SlideUpModal from './SlideUpModal';
+import CustomSelect from './CustomSelect';
 import PillButton from './PillButton';
 import ProgressBar from './ProgressBar';
 import ProviderIcon from './ProviderIcon';
@@ -18,18 +20,16 @@ export default function UploadModal({
 
   const fileInputRef = useRef(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [selectedAccountEmail, setSelectedAccountEmail] = useState(
-    accounts[0]?.email || 'mailshreyanshhere@gmail.com'
+  const [selectedAccountId, setSelectedAccountId] = useState(
+    accounts[0]?.id || '1'
   );
   const [selectedFolderId, setSelectedFolderId] = useState(defaultFolderId || 'root');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  if (!isOpen) return null;
-
   const currentAccount =
-    accounts.find((a) => a.email === selectedAccountEmail) || accounts[0];
+    accounts.find((a) => a.id === selectedAccountId) || accounts[0];
 
   const formatFileSize = (bytes) => {
     if (!bytes) return '1.2 MB';
@@ -72,41 +72,39 @@ export default function UploadModal({
     setIsUploading(true);
     setUploadProgress(10);
 
-    const stepInterval = setInterval(() => {
+    const interval = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev >= 90) {
-          clearInterval(stepInterval);
+          clearInterval(interval);
           return 90;
         }
-        return prev + 25;
+        return prev + 20;
       });
-    }, 250);
+    }, 200);
 
     setTimeout(() => {
-      clearInterval(stepInterval);
+      clearInterval(interval);
       setUploadProgress(100);
 
-      const targetFolderId = selectedFolderId === 'root' ? null : selectedFolderId;
-      const targetFolder = folders.find((f) => f.id === targetFolderId);
-      const targetPath = targetFolder ? `/${targetFolder.name}/` : '/';
-
       selectedFiles.forEach((f) => {
+        const ext = '.' + (f.name.split('.').pop() || 'dat');
         addFile({
           name: f.name,
+          extension: ext,
           size: formatFileSize(f.size),
-          sizeBytes: f.size || 1024 * 1024 * 2,
           provider: currentAccount?.provider || 'google-drive',
           accountEmail: currentAccount?.email || 'mailshreyanshhere@gmail.com',
-          path: targetPath,
-          folderId: targetFolderId,
+          modified: 'Just now',
+          path: selectedFolderId === 'root' ? '/' : `/Folder ${selectedFolderId}/`,
+          starred: false,
         });
       });
 
       setIsUploading(false);
       onClose();
       showToast(
-        `Uploaded ${
-          selectedFiles.length === 1 ? selectedFiles[0].name : `${selectedFiles.length} files`
+        `Uploaded ${selectedFiles.length} ${
+          selectedFiles.length === 1 ? 'file' : 'files'
         } to ${currentAccount?.providerName || 'Cloud'}`,
         'success'
       );
@@ -116,171 +114,153 @@ export default function UploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl  max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <SlideUpModal
+      isOpen={isOpen}
+      onClose={onClose}
+      panelClassName="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl max-h-[90vh] overflow-y-auto"
+      closeOnBackdrop={!isUploading}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-ink">Upload Files</h3>
+          <p className="text-xs text-muted mt-0.5">
+            Upload local files directly to your connected cloud storages.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={isUploading}
+          onClick={onClose}
+          className="group p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150 shrink-0"
+          aria-label="Close modal"
+        >
+          <X className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
+        </button>
+      </div>
+
+      <form onSubmit={handleStartUpload} className="flex flex-col gap-4">
+        {/* Destination Accounts & Folders */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <h3 className="text-lg font-bold text-ink">Upload Files</h3>
-            <p className="text-xs text-muted mt-0.5">
-              Upload local files directly to your connected cloud storages.
-            </p>
+            <label className="block text-xs font-semibold text-ink mb-1.5">
+              Destination Cloud
+            </label>
+            <CustomSelect
+              value={selectedAccountId}
+              onChange={(val) => setSelectedAccountId(val)}
+              options={accounts.map((acc) => ({
+                value: acc.id,
+                label: `${acc.providerName} (${acc.name})`,
+              }))}
+            />
           </div>
-          <button
-            type="button"
-            disabled={isUploading}
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink mb-1.5">
+              Target Folder
+            </label>
+            <CustomSelect
+              value={selectedFolderId}
+              onChange={(val) => setSelectedFolderId(val)}
+              options={[
+                { value: 'root', label: 'Root Directory (/)' },
+                ...folders.map((f) => ({ value: f.id, label: f.name })),
+              ]}
+            />
+          </div>
         </div>
 
-        <form onSubmit={handleStartUpload} className="flex flex-col gap-4">
-          {/* Destination Accounts & Folders */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">
-                Destination Cloud
-              </label>
-              <select
-                disabled={isUploading}
-                value={selectedAccountEmail}
-                onChange={(e) => setSelectedAccountEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white border border-track text-xs font-medium text-ink focus:outline-none cursor-pointer"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.email}>
-                    {acc.providerName} ({acc.name})
-                  </option>
-                ))}
-              </select>
-            </div>
+        {/* Drag and Drop Zone */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-3 cursor-pointer transition-colors duration-150 ${
+            isDragging
+              ? 'border-ink bg-ink/5'
+              : 'border-track hover:border-ink/40 bg-white/70 hover:bg-white'
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            className="hidden"
+          />
 
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">
-                Destination Folder
-              </label>
-              <select
-                disabled={isUploading}
-                value={selectedFolderId}
-                onChange={(e) => setSelectedFolderId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white border border-track text-xs font-medium text-ink focus:outline-none cursor-pointer"
-              >
-                <option value="root">Root / All Files</option>
-                {folders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="w-12 h-12 rounded-2xl bg-track/40 flex items-center justify-center text-ink">
+            <Upload className="w-6 h-6 stroke-[1.75]" />
           </div>
 
-          {/* Drag and Drop Zone */}
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`rounded-2xl border-2 border-dashed p-6 flex flex-col items-center justify-center text-center gap-2.5 transition-colors duration-150 cursor-pointer ${
-              isDragging
-                ? 'border-ink bg-black/5'
-                : 'border-track hover:border-ink/40 bg-white/70 hover:bg-white'
-            }`}
-          >
-            <input
-              type="file"
-              multiple
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center text-ink">
-              <Upload className="w-6 h-6 stroke-[1.75]" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-ink">
-                Drag & drop files here, or <span className="underline">browse</span>
-              </p>
-              <p className="text-[11px] text-muted mt-0.5">
-                Supports all documents, images, video, and archives.
-              </p>
-            </div>
+          <div>
+            <p className="text-sm font-bold text-ink">
+              Choose files or drag & drop here
+            </p>
+            <p className="text-xs text-muted mt-1">
+              Supports documents, images, video, and archives up to 5GB
+            </p>
           </div>
+        </div>
 
-          {/* Selected Files List */}
-          {selectedFiles.length > 0 && (
-            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
-              <span className="text-[11px] font-semibold text-muted">
-                {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} ready to upload
-              </span>
-              {selectedFiles.map((file, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-2 rounded-xl bg-white border border-track text-xs"
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <File className="w-3.5 h-3.5 text-muted shrink-0" />
-                    <span className="text-ink font-medium truncate">{file.name}</span>
-                    <span className="text-muted text-[10px] shrink-0">
-                      ({formatFileSize(file.size)})
-                    </span>
-                  </div>
-                  {!isUploading && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
-                      }}
-                      className="p-1 text-muted hover:text-ink rounded-full"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+        {/* Selected Files Preview List */}
+        {selectedFiles.length > 0 && (
+          <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
+            <span className="text-xs font-bold text-ink">
+              Selected Files ({selectedFiles.length})
+            </span>
+            {selectedFiles.map((file, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-2 rounded-xl bg-white shadow-sm text-xs"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <File className="w-4 h-4 text-muted shrink-0" />
+                  <span className="font-medium text-ink truncate max-w-[240px]">
+                    {file.name}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Progress Bar when uploading */}
-          {isUploading && (
-            <div className="flex flex-col gap-1.5 pt-2">
-              <div className="flex justify-between items-center text-xs font-semibold">
-                <span className="text-ink">Uploading to {currentAccount?.providerName}...</span>
-                <span className="text-muted">{uploadProgress}%</span>
+                <span className="text-muted shrink-0">
+                  {formatFileSize(file.size)}
+                </span>
               </div>
-              <ProgressBar value={uploadProgress} max={100} height="h-2" />
-            </div>
-          )}
-
-          {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-track/60">
-            <PillButton
-              variant="ghost"
-              size="sm"
-              disabled={isUploading}
-              onClick={onClose}
-            >
-              Cancel
-            </PillButton>
-            <PillButton
-              variant="solid"
-              size="sm"
-              type="submit"
-              disabled={selectedFiles.length === 0 || isUploading}
-            >
-              {isUploading ? 'Uploading...' : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}`}
-            </PillButton>
+            ))}
           </div>
-        </form>
-      </div>
-    </div>
+        )}
+
+        {/* Progress bar while uploading */}
+        {isUploading && (
+          <div className="flex flex-col gap-1.5 pt-2">
+            <div className="flex justify-between items-center text-xs font-semibold">
+              <span className="text-ink">Uploading to {currentAccount?.providerName}...</span>
+              <span className="text-muted">{uploadProgress}%</span>
+            </div>
+            <ProgressBar value={uploadProgress} max={100} height="h-2" />
+          </div>
+        )}
+
+        {/* Footer Actions */}
+        <div className="flex items-center justify-end gap-2.5 pt-3">
+          <PillButton
+            variant="ghost"
+            size="sm"
+            disabled={isUploading}
+            onClick={onClose}
+          >
+            Cancel
+          </PillButton>
+          <PillButton
+            variant="solid"
+            size="sm"
+            type="submit"
+            disabled={selectedFiles.length === 0 || isUploading}
+          >
+            {isUploading ? 'Uploading...' : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}`}
+          </PillButton>
+        </div>
+      </form>
+    </SlideUpModal>
   );
 }
-
-
-
-

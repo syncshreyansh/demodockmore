@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import gsap from 'gsap';
 import AppProviders from './context/AppProviders';
@@ -13,6 +13,13 @@ import IntroLoader, { shouldSkipIntro } from './components/ui/IntroLoader';
 export default function App() {
   const [introComplete, setIntroComplete] = useState(shouldSkipIntro);
   const contentRef = useRef(null);
+
+  // Disable native browser right-click globally
+  useEffect(() => {
+    const handleContextMenu = (e) => e.preventDefault();
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, []);
 
   const handleExitStart = useCallback(() => {
     if (!contentRef.current) return;

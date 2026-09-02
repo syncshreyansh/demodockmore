@@ -3,12 +3,15 @@ import {
   ArrowRight,
   Cloud,
   ChevronDown,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import StatCard from '../components/ui/StatCard';
 import FolderCard from '../components/ui/FolderCard';
 import FileRow from '../components/ui/FileRow';
+import FileGridCard from '../components/ui/FileGridCard';
 import PillButton from '../components/ui/PillButton';
 import ProviderIcon from '../components/ui/ProviderIcon';
 import FilePreviewModal from '../components/ui/FilePreviewModal';
@@ -77,6 +80,7 @@ export default function Home() {
   const { showToast } = useToast();
 
   const [filterType] = useState('All Folders');
+  const [fileViewMode, setFileViewMode] = useState('grid'); // 'list', 'grid'
   const [activePreviewFile, setActivePreviewFile] = useState(null);
   const [activeShareFile, setActiveShareFile] = useState(null);
   const [activeRenameFile, setActiveRenameFile] = useState(null);
@@ -293,9 +297,9 @@ export default function Home() {
 
         {/* Recent Files Subsection */}
         <div className="flex flex-col gap-3 pt-6 border-t border-track/40">
-          {/* Subheader: All Files selector + View all action */}
+          {/* Subheader: All Files selector + View mode + View all action */}
           <div className="flex items-center justify-between">
-            <div className="inline-flex">
+            <div className="inline-flex items-center gap-4">
               <button
                 type="button"
                 className="flex items-center gap-1 text-xs font-semibold text-muted hover:text-ink transition-colors duration-150"
@@ -303,6 +307,28 @@ export default function Home() {
                 <span>All Files</span>
                 <ChevronDown className="w-3 h-3" />
               </button>
+              <div className="flex items-center bg-white border border-track/60 rounded-xl p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setFileViewMode('grid')}
+                  className={`p-1 rounded-lg transition-colors ${
+                    fileViewMode === 'grid' ? 'bg-surface text-ink' : 'text-muted hover:text-ink'
+                  }`}
+                  title="Grid view"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFileViewMode('list')}
+                  className={`p-1 rounded-lg transition-colors ${
+                    fileViewMode === 'list' ? 'bg-surface text-ink' : 'text-muted hover:text-ink'
+                  }`}
+                  title="List view"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             <button
@@ -325,6 +351,17 @@ export default function Home() {
               <div className="py-6 text-center text-xs text-muted">
                 No recent files
               </div>
+            ) : fileViewMode === 'grid' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pt-1">
+                {files.slice(0, 5).map((file) => (
+                  <FileGridCard
+                    key={file.id}
+                    file={file}
+                    onAction={handleFileAction}
+                    onSelect={() => handleFileAction('preview', file)}
+                  />
+                ))}
+              </div>
             ) : (
               files.slice(0, 5).map((file) => (
                 <FileRow
@@ -340,47 +377,41 @@ export default function Home() {
       </section>
 
       {/* Modals for file actions */}
-      {activePreviewFile && (
-        <FilePreviewModal
-          isOpen={Boolean(activePreviewFile)}
-          file={activePreviewFile}
-          onClose={() => setActivePreviewFile(null)}
-        />
-      )}
+      <FilePreviewModal
+        isOpen={Boolean(activePreviewFile)}
+        file={activePreviewFile}
+        onClose={() => setActivePreviewFile(null)}
+      />
 
-      {activeShareFile && (
-        <ShareModal
-          isOpen={Boolean(activeShareFile)}
-          file={activeShareFile}
-          onClose={() => setActiveShareFile(null)}
-        />
-      )}
+      <ShareModal
+        isOpen={Boolean(activeShareFile)}
+        file={activeShareFile}
+        onClose={() => setActiveShareFile(null)}
+      />
 
-      {activeRenameFile && (
-        <RenameModal
-          isOpen={Boolean(activeRenameFile)}
-          initialName={activeRenameFile.name}
-          title="Rename File"
-          onRename={(newName) => {
+      <RenameModal
+        isOpen={Boolean(activeRenameFile)}
+        initialName={activeRenameFile?.name || ''}
+        title="Rename File"
+        onRename={(newName) => {
+          if (activeRenameFile) {
             renameFile(activeRenameFile.id, newName);
             showToast(`Renamed file to "${newName}"`, 'success');
-            setActiveRenameFile(null);
-          }}
-          onClose={() => setActiveRenameFile(null)}
-        />
-      )}
+          }
+          setActiveRenameFile(null);
+        }}
+        onClose={() => setActiveRenameFile(null)}
+      />
 
-      {activeDeleteFile && (
-        <ConfirmModal
-          isOpen={Boolean(activeDeleteFile)}
-          title="Delete File"
-          message={`Are you sure you want to delete "${activeDeleteFile.name}"?`}
-          confirmLabel="Delete"
-          variant="danger"
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setActiveDeleteFile(null)}
-        />
-      )}
+      <ConfirmModal
+        isOpen={Boolean(activeDeleteFile)}
+        title="Delete File"
+        message={`Are you sure you want to delete "${activeDeleteFile?.name}"?`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setActiveDeleteFile(null)}
+      />
     </div>
   );
 }

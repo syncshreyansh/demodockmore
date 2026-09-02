@@ -1,4 +1,5 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   User,
   Palette,
@@ -89,18 +90,25 @@ export default function Settings() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-figma font-medium text-sm transition-colors duration-150 text-left ${
-                  isActive
-                    ? 'bg-ink text-white font-semibold'
-                    : 'text-ink hover:bg-black/5'
+                className={`relative px-3.5 py-2.5 font-medium text-sm transition-colors duration-150 text-left ${
+                  isActive ? 'text-white' : 'text-ink hover:bg-black/5 rounded-figma'
                 }`}
               >
-                <Icon
-                  className={`w-4 h-4 shrink-0 ${
-                    isActive ? 'text-white' : 'text-ink'
-                  }`}
-                />
-                <span className="truncate">{tab.label}</span>
+                {isActive && (
+                  <motion.div
+                    layoutId="settingsTabIndicator"
+                    className="absolute inset-0 bg-ink rounded-figma z-0"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-3">
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${
+                      isActive ? 'text-white' : 'text-ink'
+                    }`}
+                  />
+                  <span className="truncate">{tab.label}</span>
+                </span>
               </button>
             );
           })}

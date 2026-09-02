@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, LogIn, Lock, Upload, Folder, FileText, ArrowRight } from 'lucide-react';
 import Sidebar from './Sidebar';
@@ -308,20 +308,16 @@ export default function AppLayout() {
       </div>
 
       {/* Global Modals */}
-      {showUploadModal && (
-        <UploadModal
-          isOpen={showUploadModal}
-          onClose={() => setShowUploadModal(false)}
-        />
-      )}
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+      />
 
-      {previewFile && (
-        <FilePreviewModal
-          isOpen={Boolean(previewFile)}
-          file={previewFile}
-          onClose={() => setPreviewFile(null)}
-        />
-      )}
+      <FilePreviewModal
+        isOpen={Boolean(previewFile)}
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+      />
     </div>
   );
 }

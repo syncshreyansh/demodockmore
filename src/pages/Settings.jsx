@@ -10,6 +10,7 @@ import {
   Key,
 } from 'lucide-react';
 import PillButton from '../components/ui/PillButton';
+import defaultAvatar from '../assets/icons/avatar.svg';
 import { useAccounts } from '../hooks/useAccounts';
 import { useToast } from '../context/ToastContext';
 
@@ -43,7 +44,7 @@ export default function Settings() {
 
   const handleAvatarRemove = () => {
     updateUser({
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      avatar: defaultAvatar,
     });
     showToast('Avatar reset to default', 'info');
   };
@@ -136,10 +137,7 @@ export default function Settings() {
                   className="hidden"
                 />
                 <img
-                  src={
-                    user?.avatar ||
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-                  }
+                  src={user?.avatar || defaultAvatar}
                   alt="Avatar"
                   className="w-16 h-16 rounded-full object-cover border-2 border-track shadow-sm"
                 />

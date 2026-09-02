@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Home,
   Folder,
@@ -17,6 +17,7 @@ import Logo from '../ui/Logo';
 import NavItem from '../ui/NavItem';
 import AccountRow from '../ui/AccountRow';
 import HelpSupportModal from '../ui/HelpSupportModal';
+import defaultAvatar from '../../assets/icons/avatar.svg';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useToast } from '../../context/ToastContext';
 
@@ -209,17 +210,11 @@ export default function Sidebar({ onCloseMobile }) {
               className="hover:bg-black/5 rounded-figma px-4 py-3 flex items-center justify-between transition-colors duration-150 cursor-pointer select-none"
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                {user?.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user?.name || 'User'}
-                    className="w-8 h-8 rounded-figma object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-figma bg-ink text-white flex items-center justify-center text-xs font-bold shrink-0 select-none">
-                    {(user?.name || 'S').charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <img
+                  src={user?.avatar || defaultAvatar}
+                  alt={user?.name || 'User'}
+                  className="w-8 h-8 rounded-figma object-cover shrink-0"
+                />
                 <div className="min-w-0 flex-1">
                   <h5 className="text-sm font-bold text-ink truncate leading-tight">
                     {user?.name || 'Shreyansh Singh'}

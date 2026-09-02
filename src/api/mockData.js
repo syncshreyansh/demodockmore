@@ -1,13 +1,15 @@
-﻿/**
+/**
  * mockData.js
  * Centralized mock data layer for dockMore multi-cloud storage aggregator.
  * All hardcoded accounts, files, folders, and transfers live here.
  */
 
+import defaultAvatar from '../assets/icons/avatar.svg';
+
 export const mockUser = {
   name: "Shreyansh Singh",
   email: "mailshreyanshhere@gmail.com",
-  avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+  avatar: defaultAvatar,
   plan: "Pro Aggregator",
   joined: "January 2026",
 };

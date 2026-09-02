@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import gsap from 'gsap';
+import AppProviders from './context/AppProviders';
 import AppLayout from './components/layout/AppLayout';
 import Home from './pages/Home';
 import AllFiles from './pages/AllFiles';
@@ -16,7 +17,7 @@ export default function App() {
   const handleExitStart = useCallback(() => {
     if (!contentRef.current) return;
 
-    // Content crossfade â€” overlaps loader exit
+    // Content crossfade — overlaps loader exit
     gsap.fromTo(
       contentRef.current,
       { opacity: 0, scale: 0.98 },
@@ -34,33 +35,35 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      {!introComplete && (
-        <IntroLoader
-          onExitStart={handleExitStart}
-          onComplete={handleIntroComplete}
-        />
-      )}
+    <AppProviders>
+      <BrowserRouter>
+        {!introComplete && (
+          <IntroLoader
+            onExitStart={handleExitStart}
+            onComplete={handleIntroComplete}
+          />
+        )}
 
-      <div
-        ref={contentRef}
-        style={{
-          opacity: introComplete ? 1 : 0,
-          transform: introComplete ? 'scale(1)' : 'scale(0.98)',
-          pointerEvents: introComplete ? 'auto' : 'none',
-        }}
-      >
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/files" element={<AllFiles />} />
-            <Route path="/transfers" element={<Transfers />} />
-            <Route path="/accounts" element={<Accounts />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </div>
-    </BrowserRouter>
+        <div
+          ref={contentRef}
+          style={{
+            opacity: introComplete ? 1 : 0,
+            transform: introComplete ? 'scale(1)' : 'scale(0.98)',
+            pointerEvents: introComplete ? 'auto' : 'none',
+          }}
+        >
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/files" element={<AllFiles />} />
+              <Route path="/transfers" element={<Transfers />} />
+              <Route path="/accounts" element={<Accounts />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AppProviders>
   );
 }

@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   ArrowRight,
   Cloud,
   ChevronDown,
+  Folder,
+  FileText,
+  Search,
+  X,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +16,8 @@ import FolderCard from '../components/ui/FolderCard';
 import PillButton from '../components/ui/PillButton';
 import SearchInput from '../components/ui/SearchInput';
 import ProviderIcon from '../components/ui/ProviderIcon';
+import FilePreviewModal from '../components/ui/FilePreviewModal';
+import UploadModal from '../components/ui/UploadModal';
 import { useFiles } from '../hooks/useFiles';
 import { useAccounts } from '../hooks/useAccounts';
 
@@ -74,10 +80,14 @@ function StorageTooltip({ active, payload }) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { folders, stats, loading } = useFiles();
+  const { files, folders, stats, loading } = useFiles();
   const { user } = useAccounts();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('Folders');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const searchRef = useRef(null);
 
   const chartData = stats?.storageByProvider || [
     {
@@ -117,12 +127,48 @@ export default function Home() {
     },
   ];
 
+  // Close search dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const searchResults = React.useMemo(() => {
+    if (!searchQuery.trim()) return { files: [], folders: [] };
+    const q = searchQuery.toLowerCase().trim();
+
+    const matchedFiles = files.filter(
+      (f) =>
+        f.name.toLowerCase().includes(q) ||
+        f.accountEmail.toLowerCase().includes(q)
+    );
+
+    const matchedFolders = folders.filter((f) =>
+      f.name.toLowerCase().includes(q)
+    );
+
+    return { files: matchedFiles, folders: matchedFolders };
+  }, [searchQuery, files, folders]);
+
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
+    setSearchDropdownOpen(true);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      setSearchDropdownOpen(false);
+      navigate(`/files?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   const handleUploadClick = () => {
-    navigate('/files');
+    setShowUploadModal(true);
   };
 
   return (
@@ -138,7 +184,10 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="bg-white px-0 py-0 flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-[13px] lg:w-[657px] mt-[13px]">
+        <div
+          ref={searchRef}
+          className="relative bg-white px-0 py-0 flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-[13px] lg:w-[657px] mt-[13px]"
+        >
           <PillButton
             variant="solid"
             size="md"
@@ -149,14 +198,99 @@ export default function Home() {
           >
             Upload
           </PillButton>
-          <SearchInput
-            value={searchQuery}
-            onChange={handleSearch}
-            onClear={() => setSearchQuery('')}
-            placeholder="Search across all your clouds..."
-            className="flex-1 min-w-0"
-            inputClassName="h-[48px] bg-[#252525]/10 hover:bg-[#252525]/15 focus:bg-white text-[15px]"
-          />
+
+          <div className="flex-1 min-w-0 relative">
+            <SearchInput
+              value={searchQuery}
+              onChange={handleSearch}
+              onKeyDown={handleSearchKeyDown}
+              onFocus={() => setSearchDropdownOpen(true)}
+              onClear={() => setSearchQuery('')}
+              placeholder="Search across all your clouds..."
+              className="w-full"
+              inputClassName="h-[48px] bg-[#252525]/10 hover:bg-[#252525]/15 focus:bg-white text-[15px]"
+            />
+
+            {/* Live Search Results Dropdown */}
+            {searchDropdownOpen && searchQuery.trim().length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.18)] border border-black/10 p-3 z-50 max-h-80 overflow-y-auto flex flex-col gap-2.5 animate-fade-in text-ink">
+                {searchResults.folders.length === 0 && searchResults.files.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-muted">
+                    No results found for "{searchQuery}". Press Enter to search All Files.
+                  </div>
+                ) : (
+                  <>
+                    {/* Folders */}
+                    {searchResults.folders.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted px-2">
+                          Folders
+                        </span>
+                        {searchResults.folders.map((folder) => (
+                          <div
+                            key={folder.id}
+                            onClick={() => {
+                              setSearchDropdownOpen(false);
+                              navigate(`/files?folder=${folder.id}`);
+                            }}
+                            className="flex items-center justify-between p-2 rounded-xl hover:bg-black/5 cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <Folder className="w-4 h-4 text-ink" />
+                              <span className="text-xs font-semibold uppercase">{folder.name}</span>
+                            </div>
+                            <ProviderIcon provider={folder.provider} size="xs" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Files */}
+                    {searchResults.files.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted px-2">
+                          Files
+                        </span>
+                        {searchResults.files.map((file) => (
+                          <div
+                            key={file.id}
+                            onClick={() => {
+                              setSearchDropdownOpen(false);
+                              setPreviewFile(file);
+                            }}
+                            className="flex items-center justify-between p-2 rounded-xl hover:bg-black/5 cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                              <FileText className="w-4 h-4 text-muted shrink-0" />
+                              <span className="text-xs font-medium text-ink truncate">{file.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[11px] text-muted">{file.size}</span>
+                              <ProviderIcon provider={file.provider} size="xs" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="border-t border-black/5 pt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchDropdownOpen(false);
+                          navigate(`/files?search=${encodeURIComponent(searchQuery.trim())}`);
+                        }}
+                        className="text-xs font-semibold text-ink hover:underline flex items-center gap-1"
+                      >
+                        <span>View all results</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -237,7 +371,7 @@ export default function Home() {
         <StatCard
           variant="sidebar"
           className="md:col-span-1 lg:col-span-3 min-h-[190px]"
-          value={`${stats?.recentTransfersCount || 5} Transfers`}
+          value={`${stats?.totalTransfersCount || 5} Transfers`}
           valueBadge={
             <div className="flex items-center gap-1 bg-ink text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
               <span>1M</span>
@@ -262,7 +396,7 @@ export default function Home() {
       </div>
 
       {/* Recent folders */}
-      <section className="bg-sidebar rounded-figma p-7 flex flex-col gap-5 min-h-[560px]">
+      <section className="bg-sidebar rounded-figma p-7 flex flex-col gap-5 min-h-[300px]">
         <div className="flex flex-col gap-1">
           <h2 className="font-sans font-semibold text-[30px] leading-none text-[#303030] tracking-[-0.048em]">Recent</h2>
           <div className="inline-flex">
@@ -286,12 +420,29 @@ export default function Home() {
               <FolderCard
                 key={folder.id}
                 folder={folder}
-                onClick={() => navigate('/files')}
+                onClick={() => navigate(`/files?folder=${folder.id}`)}
               />
             ))
           )}
         </div>
       </section>
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <FilePreviewModal
+          isOpen={Boolean(previewFile)}
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <UploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+        />
+      )}
     </div>
   );
 }

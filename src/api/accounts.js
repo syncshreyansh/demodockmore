@@ -1,16 +1,12 @@
 import { mockAccounts, mockUser } from './mockData';
 
-/**
- * Async API layer for accounts.
- * Returns Promises simulating network calls so calling code will not need to change
- * when swapped with real REST/GraphQL APIs.
- */
+let accountsStore = [...mockAccounts];
+let userStore = { ...mockUser };
 
 export async function getAccounts() {
   return new Promise((resolve) => {
-    // Simulating async network delay
     setTimeout(() => {
-      resolve([...mockAccounts]);
+      resolve([...accountsStore]);
     }, 50);
   });
 }
@@ -18,7 +14,7 @@ export async function getAccounts() {
 export async function getAccountById(id) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const account = mockAccounts.find((a) => a.id === id);
+      const account = accountsStore.find((a) => a.id === id);
       if (account) {
         resolve({ ...account });
       } else {
@@ -31,7 +27,7 @@ export async function getAccountById(id) {
 export async function getUserProfile() {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve({ ...mockUser });
+      resolve({ ...userStore });
     }, 50);
   });
 }
@@ -39,6 +35,9 @@ export async function getUserProfile() {
 export async function syncAccount(id) {
   return new Promise((resolve) => {
     setTimeout(() => {
+      accountsStore = accountsStore.map((acc) =>
+        acc.id === id ? { ...acc, lastSynced: 'Just now', status: 'active' } : acc
+      );
       resolve({ success: true, id, syncedAt: new Date().toISOString() });
     }, 100);
   });
@@ -47,6 +46,7 @@ export async function syncAccount(id) {
 export async function disconnectAccount(id) {
   return new Promise((resolve) => {
     setTimeout(() => {
+      accountsStore = accountsStore.filter((acc) => acc.id !== id);
       resolve({ success: true, id });
     }, 100);
   });

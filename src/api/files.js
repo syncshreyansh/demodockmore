@@ -1,13 +1,15 @@
 import { mockFiles, mockFolders, mockDashboardStats } from './mockData';
 
-/**
- * Async API layer for files and storage statistics.
- */
+let filesStore = [...mockFiles];
+let foldersStore = [...mockFolders];
 
 export async function getFiles(filters = {}) {
   return new Promise((resolve) => {
     setTimeout(() => {
-      let filtered = [...mockFiles];
+      let filtered = [...filesStore];
+      if (filters.folder) {
+        filtered = filtered.filter((f) => f.folderId === filters.folder);
+      }
       if (filters.provider && filters.provider !== 'all') {
         filtered = filtered.filter((f) => f.provider === filters.provider);
       }
@@ -28,7 +30,7 @@ export async function getFiles(filters = {}) {
 export async function getRecentFolders() {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve([...mockFolders]);
+      resolve([...foldersStore]);
     }, 50);
   });
 }
@@ -36,7 +38,7 @@ export async function getRecentFolders() {
 export async function getDashboardStats() {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve({ ...mockDashboardStats });
+      resolve({ ...mockDashboardStats, totalFilesCount: filesStore.length });
     }, 50);
   });
 }

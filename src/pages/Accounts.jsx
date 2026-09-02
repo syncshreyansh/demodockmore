@@ -9,29 +9,62 @@ import {
   ExternalLink,
   ShieldCheck,
   X,
+  Loader2,
 } from 'lucide-react';
 import ProviderIcon from '../components/ui/ProviderIcon';
 import ProgressBar from '../components/ui/ProgressBar';
 import PillButton from '../components/ui/PillButton';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { useAccounts } from '../hooks/useAccounts';
+import { useToast } from '../context/ToastContext';
 
 export default function Accounts() {
-  const { accounts, loading, syncAccount, disconnectAccount } = useAccounts();
+  const { accounts, loading, syncAccount, disconnectAccount, connectAccount } = useAccounts();
+  const { showToast } = useToast();
+
   const [syncingId, setSyncingId] = useState(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
+  const [connectingProviderId, setConnectingProviderId] = useState(null);
+  const [disconnectModalState, setDisconnectModalState] = useState({
+    isOpen: false,
+    id: null,
+    name: '',
+  });
 
-  const handleSync = async (id) => {
+  const handleSync = async (id, name) => {
     setSyncingId(id);
     await syncAccount(id);
     setTimeout(() => {
       setSyncingId(null);
+      showToast(`Synced ${name} successfully`, 'success');
     }, 400);
   };
 
-  const handleDisconnect = async (id, name) => {
-    if (confirm(`Are you sure you want to disconnect ${name}?`)) {
-      await disconnectAccount(id);
+  const handleOpenDisconnect = (id, name) => {
+    setDisconnectModalState({
+      isOpen: true,
+      id,
+      name,
+    });
+  };
+
+  const handleConfirmDisconnect = async () => {
+    if (disconnectModalState.id) {
+      await disconnectAccount(disconnectModalState.id);
+      showToast(`Disconnected ${disconnectModalState.name}`, 'info');
     }
+    setDisconnectModalState({ isOpen: false, id: null, name: '' });
+  };
+
+  const handleProviderSelect = async (prov) => {
+    setConnectingProviderId(prov.id);
+
+    setTimeout(async () => {
+      await connectAccount(prov.id);
+      setConnectingProviderId(null);
+      setShowConnectModal(false);
+      showToast(`Successfully connected ${prov.name} account`, 'success');
+    }, 1000);
   };
 
   return (
@@ -68,7 +101,7 @@ export default function Accounts() {
             const isExpired = account.status === 'expired';
             const isSyncing = syncingId === account.id;
             const usedPercent = Math.round(
-              (account.usedStorageGB / account.totalStorageGB) * 100
+              (account.usedStorageGB / (account.totalStorageGB || 1)) * 100
             );
 
             return (
@@ -137,7 +170,7 @@ export default function Accounts() {
                     size="xs"
                     icon={RefreshCw}
                     disabled={isSyncing}
-                    onClick={() => handleSync(account.id)}
+                    onClick={() => handleSync(account.id, account.name)}
                     className={isSyncing ? 'animate-spin' : ''}
                   >
                     {isSyncing ? 'Syncing...' : 'Sync now'}
@@ -147,7 +180,7 @@ export default function Accounts() {
                     variant="danger"
                     size="xs"
                     icon={Trash2}
-                    onClick={() => handleDisconnect(account.id, account.name)}
+                    onClick={() => handleOpenDisconnect(account.id, account.name)}
                   >
                     Disconnect
                   </PillButton>
@@ -177,8 +210,8 @@ export default function Accounts() {
 
       {/* Connect Account Modal */}
       {showConnectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full flex flex-col gap-5 relative shadow-2xl animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-ink">Connect Cloud Account</h3>
@@ -188,6 +221,7 @@ export default function Accounts() {
               </div>
               <button
                 type="button"
+                disabled={Boolean(connectingProviderId)}
                 onClick={() => setShowConnectModal(false)}
                 className="p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150"
               >
@@ -201,26 +235,40 @@ export default function Accounts() {
                 { name: 'Microsoft OneDrive', id: 'onedrive', desc: 'Personal & Microsoft 365' },
                 { name: 'Dropbox', id: 'dropbox', desc: 'Dropbox Personal & Business' },
                 { name: 'MEGA', id: 'mega', desc: 'Encrypted Cloud Storage' },
-              ].map((prov) => (
-                <button
-                  key={prov.id}
-                  type="button"
-                  onClick={() => {
-                    alert(`Initiating OAuth connection flow for ${prov.name}`);
-                    setShowConnectModal(false);
-                  }}
-                  className="flex items-center justify-between p-3.5 rounded-xl bg-white hover:bg-black/5 border border-track text-left transition-colors duration-150"
-                >
-                  <div className="flex items-center gap-3">
-                    <ProviderIcon provider={prov.id} size="md" />
-                    <div>
-                      <p className="text-sm font-bold text-ink">{prov.name}</p>
-                      <p className="text-xs text-muted">{prov.desc}</p>
+              ].map((prov) => {
+                const isConnecting = connectingProviderId === prov.id;
+
+                return (
+                  <button
+                    key={prov.id}
+                    type="button"
+                    disabled={Boolean(connectingProviderId)}
+                    onClick={() => handleProviderSelect(prov)}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-colors duration-150 ${
+                      isConnecting
+                        ? 'bg-ink text-white border-ink'
+                        : 'bg-white hover:bg-black/5 border-track'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <ProviderIcon provider={prov.id} size="md" />
+                      <div>
+                        <p className={`text-sm font-bold ${isConnecting ? 'text-white' : 'text-ink'}`}>
+                          {prov.name}
+                        </p>
+                        <p className={`text-xs ${isConnecting ? 'text-white/80' : 'text-muted'}`}>
+                          {isConnecting ? 'Authenticating via OAuth 2.0...' : prov.desc}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-muted" />
-                </button>
-              ))}
+                    {isConnecting ? (
+                      <Loader2 className="w-4 h-4 text-white animate-spin" />
+                    ) : (
+                      <ExternalLink className="w-4 h-4 text-muted" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-muted bg-track/30 p-3 rounded-xl">
@@ -232,6 +280,17 @@ export default function Accounts() {
           </div>
         </div>
       )}
+
+      {/* Disconnect Confirmation Modal */}
+      <ConfirmModal
+        isOpen={disconnectModalState.isOpen}
+        title="Disconnect Account"
+        message={`Are you sure you want to disconnect ${disconnectModalState.name}? Its files will be unindexed from your unified dashboard.`}
+        confirmLabel="Disconnect"
+        variant="danger"
+        onConfirm={handleConfirmDisconnect}
+        onCancel={() => setDisconnectModalState({ isOpen: false, id: null, name: '' })}
+      />
     </div>
   );
 }

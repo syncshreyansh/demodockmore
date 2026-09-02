@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   User,
   Palette,
@@ -13,14 +13,18 @@ import {
 } from 'lucide-react';
 import PillButton from '../components/ui/PillButton';
 import { useAccounts } from '../hooks/useAccounts';
+import { useToast } from '../context/ToastContext';
 
 export default function Settings() {
-  const { user } = useAccounts();
+  const { user, updateUser, rotateVaultKey, exportBackup } = useAccounts();
+  const { showToast } = useToast();
+  const avatarInputRef = useRef(null);
+
   const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'appearance', 'notifications', 'security'
 
   // Profile Form State
   const [name, setName] = useState(user?.name || 'Shreyansh Singh');
-  const [email, setEmail] = useState(user?.email || 'shreyanshgottech@gmail.com');
+  const [email, setEmail] = useState(user?.email || 'mailshreyanshhere@gmail.com');
   const [jobTitle, setJobTitle] = useState('Product Engineer & Designer');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -30,12 +34,40 @@ export default function Settings() {
   const [notifyLowStorage, setNotifyLowStorage] = useState(true);
   const [compressionLevel, setCompressionLevel] = useState('balanced');
 
+  const handleAvatarChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const objectUrl = URL.createObjectURL(file);
+      updateUser({ avatar: objectUrl });
+      showToast('Profile avatar updated successfully', 'success');
+    }
+  };
+
+  const handleAvatarRemove = () => {
+    updateUser({
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    });
+    showToast('Avatar reset to default', 'info');
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
+    updateUser({ name, email, jobTitle });
     setSavedSuccess(true);
+    showToast('Profile settings saved successfully', 'success');
     setTimeout(() => {
       setSavedSuccess(false);
     }, 2000);
+  };
+
+  const handleRotateKey = () => {
+    rotateVaultKey();
+    showToast('End-to-End Vault key rotated successfully', 'success');
+  };
+
+  const handleExportBackup = () => {
+    exportBackup();
+    showToast('Vault backup exported successfully', 'success');
   };
 
   const navTabs = [
@@ -101,13 +133,20 @@ export default function Settings() {
 
               {/* Avatar Row */}
               <div className="flex items-center gap-5 pt-2">
+                <input
+                  type="file"
+                  ref={avatarInputRef}
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
                 <img
                   src={
                     user?.avatar ||
                     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
                   }
                   alt="Avatar"
-                  className="w-16 h-16 rounded-full object-cover border-2 border-track"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-track shadow-sm"
                 />
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
@@ -115,16 +154,16 @@ export default function Settings() {
                       variant="ghost"
                       size="xs"
                       icon={Upload}
-                      onClick={() => alert('Upload new photo')}
+                      onClick={() => avatarInputRef.current?.click()}
                     >
                       Change Avatar
                     </PillButton>
                     <button
                       type="button"
-                      onClick={() => alert('Avatar removed')}
+                      onClick={handleAvatarRemove}
                       className="text-xs text-muted hover:text-ink font-medium px-2 py-1"
                     >
-                      Remove
+                      Reset
                     </button>
                   </div>
                   <p className="text-[11px] text-muted">
@@ -207,7 +246,10 @@ export default function Settings() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setAutoSync(!autoSync)}
+                    onClick={() => {
+                      setAutoSync(!autoSync);
+                      showToast(`Background sync ${!autoSync ? 'enabled' : 'disabled'}`, 'info');
+                    }}
                     className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-150 ${
                       autoSync ? 'bg-ink' : 'bg-track'
                     }`}
@@ -229,7 +271,10 @@ export default function Settings() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setNotifyLowStorage(!notifyLowStorage)}
+                    onClick={() => {
+                      setNotifyLowStorage(!notifyLowStorage);
+                      showToast(`Transfer deduplication ${!notifyLowStorage ? 'enabled' : 'disabled'}`, 'info');
+                    }}
                     className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-150 ${
                       notifyLowStorage ? 'bg-ink' : 'bg-track'
                     }`}
@@ -248,7 +293,10 @@ export default function Settings() {
                   </label>
                   <select
                     value={compressionLevel}
-                    onChange={(e) => setCompressionLevel(e.target.value)}
+                    onChange={(e) => {
+                      setCompressionLevel(e.target.value);
+                      showToast('Compression level updated', 'info');
+                    }}
                     className="w-full px-4 py-2.5 rounded-xl bg-white border border-track text-sm text-ink focus:outline-none focus:border-ink cursor-pointer"
                   >
                     <option value="none">No compression (Direct binary stream)</option>
@@ -280,7 +328,10 @@ export default function Settings() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setNotifyTransfers(!notifyTransfers)}
+                    onClick={() => {
+                      setNotifyTransfers(!notifyTransfers);
+                      showToast(`Transfer notifications ${!notifyTransfers ? 'enabled' : 'disabled'}`, 'info');
+                    }}
                     className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-150 ${
                       notifyTransfers ? 'bg-ink' : 'bg-track'
                     }`}
@@ -302,7 +353,10 @@ export default function Settings() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setNotifyLowStorage(!notifyLowStorage)}
+                    onClick={() => {
+                      setNotifyLowStorage(!notifyLowStorage);
+                      showToast(`Quota warnings ${!notifyLowStorage ? 'enabled' : 'disabled'}`, 'info');
+                    }}
                     className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-150 ${
                       notifyLowStorage ? 'bg-ink' : 'bg-track'
                     }`}
@@ -348,14 +402,14 @@ export default function Settings() {
                     <PillButton
                       variant="ghost"
                       size="xs"
-                      onClick={() => alert('Vault key rotated')}
+                      onClick={handleRotateKey}
                     >
                       Rotate Key
                     </PillButton>
                     <PillButton
                       variant="ghost"
                       size="xs"
-                      onClick={() => alert('Vault backup exported')}
+                      onClick={handleExportBackup}
                     >
                       Export Backup
                     </PillButton>

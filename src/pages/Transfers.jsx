@@ -6,9 +6,7 @@ import {
   CheckCircle2,
   Clock,
   Zap,
-  Pause,
-  Play,
-  RotateCcw,
+  Trash2,
   X,
 } from 'lucide-react';
 import ProviderIcon from '../components/ui/ProviderIcon';
@@ -16,12 +14,14 @@ import ProgressBar from '../components/ui/ProgressBar';
 import PillButton from '../components/ui/PillButton';
 import { useTransfers } from '../hooks/useTransfers';
 import { useAccounts } from '../hooks/useAccounts';
+import { useToast } from '../context/ToastContext';
 
 export default function Transfers() {
   const [filterTab, setFilterTab] = useState('all'); // 'all', 'in_progress', 'completed'
   const [showModal, setShowModal] = useState(false);
-  const { transfers, loading, addTransfer } = useTransfers(filterTab);
+  const { transfers, loading, addTransfer, cancelTransfer } = useTransfers(filterTab);
   const { accounts } = useAccounts();
+  const { showToast } = useToast();
 
   // New Transfer Form State
   const [formData, setFormData] = useState({
@@ -46,15 +46,22 @@ export default function Transfers() {
       destinationAccount: formData.destinationAccount,
     });
 
+    showToast(`Transfer started for "${formData.filename}"`, 'success');
+
     setFormData({
       filename: '',
       size: '120 MB',
       sourceProvider: 'google-drive',
-      sourceAccount: 'mailshreyanshhere@gmail.com',
+      sourceAccount: accounts[0]?.email || 'mailshreyanshhere@gmail.com',
       destinationProvider: 'onedrive',
-      destinationAccount: 'reachbitsandgears@outlook.com',
+      destinationAccount: accounts.find((a) => a.provider === 'onedrive')?.email || 'reachbitsandgears@outlook.com',
     });
     setShowModal(false);
+  };
+
+  const handleCancelTransfer = (id, filename) => {
+    cancelTransfer(id);
+    showToast(`Cancelled transfer of "${filename}"`, 'info');
   };
 
   return (
@@ -139,7 +146,7 @@ export default function Transfers() {
             return (
               <div
                 key={item.id}
-                className="bg-surface rounded-2xl p-5 flex flex-col gap-3 hover:bg-white transition-colors duration-150"
+                className="bg-surface rounded-2xl p-5 flex flex-col gap-3 hover:bg-white transition-colors duration-150 relative group"
               >
                 {/* Top Row: Providers, Direction, Filename, Size, Status */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -157,13 +164,13 @@ export default function Transfers() {
                         {item.filename}
                       </h4>
                       <p className="text-xs text-muted truncate mt-0.5 font-medium">
-                        {item.sourceAccount} → {item.destinationAccount}
+                        {item.sourceAccount} ? {item.destinationAccount}
                       </p>
                     </div>
                   </div>
 
                   {/* Status & Size */}
-                  <div className="flex items-center gap-4 shrink-0 self-end md:self-center">
+                  <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
                     <span className="text-xs font-semibold text-ink">{item.size}</span>
 
                     {isCompleted ? (
@@ -177,6 +184,15 @@ export default function Transfers() {
                         <span>{item.speed || 'Transferring'}</span>
                       </div>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleCancelTransfer(item.id, item.filename)}
+                      className="p-1.5 rounded-full text-muted hover:text-red-600 hover:bg-black/5 transition-colors"
+                      title="Remove job"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
@@ -200,7 +216,7 @@ export default function Transfers() {
                     {!isCompleted && (
                       <div className="flex items-center gap-3 text-ink font-semibold">
                         <span>{item.progress}%</span>
-                        {item.eta && <span className="text-muted font-normal">• {item.eta}</span>}
+                        {item.eta && <span className="text-muted font-normal">� {item.eta}</span>}
                       </div>
                     )}
                   </div>
@@ -213,8 +229,8 @@ export default function Transfers() {
 
       {/* New Transfer Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full flex flex-col gap-5 relative shadow-2xl animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-ink">New Cloud Transfer</h3>
@@ -226,6 +242,7 @@ export default function Transfers() {
                 type="button"
                 onClick={() => setShowModal(false)}
                 className="p-1.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors duration-150"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>

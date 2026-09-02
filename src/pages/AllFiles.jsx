@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Upload,
   FolderPlus,
@@ -6,12 +7,27 @@ import {
   ChevronRight,
   Search,
   Filter,
+  Check,
+  X,
+  Trash2,
+  FolderInput,
+  Download,
+  Share2,
+  Edit3,
 } from 'lucide-react';
 import FileRow from '../components/ui/FileRow';
 import PillButton from '../components/ui/PillButton';
 import SearchInput from '../components/ui/SearchInput';
 import ProviderIcon from '../components/ui/ProviderIcon';
+import FilePreviewModal from '../components/ui/FilePreviewModal';
+import ShareModal from '../components/ui/ShareModal';
+import RenameModal from '../components/ui/RenameModal';
+import MoveModal from '../components/ui/MoveModal';
+import UploadModal from '../components/ui/UploadModal';
+import CreateFolderModal from '../components/ui/CreateFolderModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { useFiles } from '../hooks/useFiles';
+import { useToast } from '../context/ToastContext';
 
 const PROVIDER_FILTERS = [
   { id: 'all', label: 'All Files' },
@@ -22,37 +38,160 @@ const PROVIDER_FILTERS = [
 ];
 
 export default function AllFiles() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const folderParam = searchParams.get('folder');
+  const searchParam = searchParams.get('search');
+
+  const {
+    files,
+    folders,
+    loading,
+    deleteFile,
+    deleteFiles,
+    renameFile,
+    moveFile,
+    moveFiles,
+    toggleStar,
+  } = useFiles();
+  const { showToast } = useToast();
+
   const [selectedProvider, setSelectedProvider] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParam || '');
   const [sortBy, setSortBy] = useState('modified'); // 'name', 'size', 'modified'
-  const { files, loading } = useFiles();
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  // Modals state
+  const [activePreviewFile, setActivePreviewFile] = useState(null);
+  const [activeShareFile, setActiveShareFile] = useState(null);
+  const [activeRenameFile, setActiveRenameFile] = useState(null);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [movingFileIds, setMovingFileIds] = useState([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [deleteConfirmState, setDeleteConfirmState] = useState({
+    isOpen: false,
+    ids: [],
+    title: '',
+    message: '',
+  });
+
+  useEffect(() => {
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParam]);
+
+  const currentFolder = useMemo(() => {
+    if (!folderParam) return null;
+    return folders.find((f) => f.id === folderParam) || null;
+  }, [folderParam, folders]);
 
   const filteredFiles = useMemo(() => {
     return files
       .filter((file) => {
+        const matchesFolder = folderParam ? file.folderId === folderParam : true;
         const matchesProvider =
           selectedProvider === 'all' || file.provider === selectedProvider;
         const matchesSearch =
           !searchQuery ||
           file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           file.accountEmail.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesProvider && matchesSearch;
+        return matchesFolder && matchesProvider && matchesSearch;
       })
       .sort((a, b) => {
         if (sortBy === 'name') return a.name.localeCompare(b.name);
         if (sortBy === 'size') return (b.sizeBytes || 0) - (a.sizeBytes || 0);
         return 0; // default order
       });
-  }, [files, selectedProvider, searchQuery, sortBy]);
+  }, [files, folderParam, selectedProvider, searchQuery, sortBy]);
+
+  const handleToggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredFiles.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredFiles.map((f) => f.id));
+    }
+  };
 
   const handleFileAction = (action, file) => {
     if (action === 'download') {
-      alert(`Downloading ${file.name} from ${file.provider.replace('-', ' ')}`);
+      showToast(`Downloading ${file.name}...`, 'success');
     } else if (action === 'share') {
-      alert(`Generating shareable link for ${file.name}`);
-    } else {
-      alert(`Actions for ${file.name}`);
+      setActiveShareFile(file);
+    } else if (action === 'preview') {
+      setActivePreviewFile(file);
+    } else if (action === 'star') {
+      toggleStar(file.id);
+      showToast(file.starred ? 'Removed from Starred' : 'Added to Starred', 'info');
+    } else if (action === 'rename') {
+      setActiveRenameFile(file);
+    } else if (action === 'move') {
+      setMovingFileIds([file.id]);
+      setShowMoveModal(true);
+    } else if (action === 'delete') {
+      setDeleteConfirmState({
+        isOpen: true,
+        ids: [file.id],
+        title: 'Delete File',
+        message: `Are you sure you want to delete "${file.name}"?`,
+      });
     }
+  };
+
+  const handleBulkDownload = () => {
+    showToast(`Downloading ${selectedIds.length} files...`, 'success');
+  };
+
+  const handleBulkMove = () => {
+    setMovingFileIds([...selectedIds]);
+    setShowMoveModal(true);
+  };
+
+  const handleBulkDelete = () => {
+    setDeleteConfirmState({
+      isOpen: true,
+      ids: [...selectedIds],
+      title: 'Delete Files',
+      message: `Are you sure you want to delete ${selectedIds.length} selected files?`,
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmState.ids.length === 1) {
+      deleteFile(deleteConfirmState.ids[0]);
+      showToast('File deleted successfully', 'info');
+    } else if (deleteConfirmState.ids.length > 1) {
+      deleteFiles(deleteConfirmState.ids);
+      showToast(`Deleted ${deleteConfirmState.ids.length} files`, 'info');
+    }
+    setSelectedIds((prev) =>
+      prev.filter((id) => !deleteConfirmState.ids.includes(id))
+    );
+    setDeleteConfirmState({ isOpen: false, ids: [], title: '', message: '' });
+  };
+
+  const handleExecuteMove = (targetFolderId, newPath) => {
+    if (movingFileIds.length === 1) {
+      moveFile(movingFileIds[0], targetFolderId, newPath);
+      showToast('Moved file successfully', 'success');
+    } else if (movingFileIds.length > 1) {
+      moveFiles(movingFileIds, targetFolderId, newPath);
+      showToast(`Moved ${movingFileIds.length} files to ${newPath}`, 'success');
+    }
+    setMovingFileIds([]);
+    setShowMoveModal(false);
+  };
+
+  const clearFolderFilter = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('folder');
+    setSearchParams(newParams);
   };
 
   return (
@@ -61,13 +200,41 @@ export default function AllFiles() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-sans font-bold text-2xl md:text-3xl text-ink">
-            All Files
+            {currentFolder ? currentFolder.name : 'All Files'}
           </h1>
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-1.5 text-xs text-muted mt-1 font-medium">
-            <span>Root</span>
+          <div className="flex items-center gap-1.5 text-xs text-muted mt-1 font-medium flex-wrap">
+            <button
+              type="button"
+              onClick={clearFolderFilter}
+              className="hover:text-ink transition-colors"
+            >
+              Root
+            </button>
             <ChevronRight className="w-3 h-3" />
-            <span className="text-ink">Multi-Cloud Storage</span>
+            <button
+              type="button"
+              onClick={clearFolderFilter}
+              className={`hover:text-ink transition-colors ${!currentFolder ? 'text-ink font-semibold' : ''}`}
+            >
+              Multi-Cloud Storage
+            </button>
+            {currentFolder && (
+              <>
+                <ChevronRight className="w-3 h-3" />
+                <span className="text-ink font-bold uppercase flex items-center gap-1 bg-track/40 px-2 py-0.5 rounded-full">
+                  {currentFolder.name}
+                  <button
+                    type="button"
+                    onClick={clearFolderFilter}
+                    className="hover:text-ink ml-0.5"
+                    title="Clear folder filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              </>
+            )}
             {selectedProvider !== 'all' && (
               <>
                 <ChevronRight className="w-3 h-3" />
@@ -82,7 +249,7 @@ export default function AllFiles() {
             variant="ghost"
             size="sm"
             icon={FolderPlus}
-            onClick={() => alert('Create new folder')}
+            onClick={() => setShowCreateFolderModal(true)}
           >
             New Folder
           </PillButton>
@@ -90,7 +257,7 @@ export default function AllFiles() {
             variant="solid"
             size="sm"
             icon={Upload}
-            onClick={() => alert('Upload files')}
+            onClick={() => setShowUploadModal(true)}
           >
             Upload File
           </PillButton>
@@ -121,44 +288,117 @@ export default function AllFiles() {
         })}
       </div>
 
-      {/* Search & Secondary Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface/60 p-2 rounded-2xl">
-        <SearchInput
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onClear={() => setSearchQuery('')}
-          placeholder="Filter files by name or account..."
-          className="flex-1"
-          size="sm"
-        />
+      {/* Bulk Action Bar (shows when >=1 file selected) */}
+      {selectedIds.length > 0 ? (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-ink text-white p-3 px-4 rounded-2xl animate-fade-in shadow-md">
+          <div className="flex items-center gap-3">
+            <div
+              onClick={handleSelectAll}
+              className="w-5 h-5 rounded-md border border-white/60 bg-white text-ink flex items-center justify-center cursor-pointer"
+            >
+              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+            </div>
+            <span className="text-xs font-bold text-white">
+              {selectedIds.length} {selectedIds.length === 1 ? 'file' : 'files'} selected
+            </span>
+          </div>
 
-        <div className="flex items-center gap-2 justify-end px-2">
-          <span className="text-xs text-muted font-medium">
-            {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
-          </span>
-          <div className="h-4 w-px bg-track" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="text-xs font-semibold bg-transparent text-ink focus:outline-none cursor-pointer"
-          >
-            <option value="modified">Sort by Recent</option>
-            <option value="name">Sort by Name</option>
-            <option value="size">Sort by Size</option>
-          </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <PillButton
+              variant="solid"
+              size="xs"
+              icon={Download}
+              onClick={handleBulkDownload}
+              className="bg-white/20 hover:bg-white/30 text-white border-none"
+            >
+              Download
+            </PillButton>
+
+            <PillButton
+              variant="solid"
+              size="xs"
+              icon={FolderInput}
+              onClick={handleBulkMove}
+              className="bg-white/20 hover:bg-white/30 text-white border-none"
+            >
+              Move
+            </PillButton>
+
+            <PillButton
+              variant="solid"
+              size="xs"
+              icon={Trash2}
+              onClick={handleBulkDelete}
+              className="bg-red-500/80 hover:bg-red-500 text-white border-none"
+            >
+              Delete
+            </PillButton>
+
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-white/70 hover:text-white px-2 py-1 font-medium"
+            >
+              Deselect All
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Search & Secondary Filter Bar */
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface/60 p-2 rounded-2xl">
+          <SearchInput
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder="Filter files by name or account..."
+            className="flex-1"
+            size="sm"
+          />
+
+          <div className="flex items-center gap-2 justify-end px-2">
+            <span className="text-xs text-muted font-medium">
+              {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
+            </span>
+            <div className="h-4 w-px bg-track" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="text-xs font-semibold bg-transparent text-ink focus:outline-none cursor-pointer"
+            >
+              <option value="modified">Sort by Recent</option>
+              <option value="name">Sort by Name</option>
+              <option value="size">Sort by Size</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Files List Table */}
       <div className="flex flex-col gap-2">
         {/* Table Header */}
         <div className="flex items-center justify-between px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none">
-          <span className="flex-1">Name & Location</span>
+          <div className="flex items-center gap-3 flex-1">
+            <div
+              onClick={handleSelectAll}
+              className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                selectedIds.length > 0 && selectedIds.length === filteredFiles.length
+                  ? 'bg-ink border-ink text-white'
+                  : 'border-track hover:border-ink/50 bg-white'
+              }`}
+              title="Select all"
+            >
+              {selectedIds.length > 0 && selectedIds.length === filteredFiles.length && (
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+              )}
+            </div>
+            <span>Name & Location</span>
+          </div>
+
           <div className="flex items-center gap-6 shrink-0">
             <span className="hidden sm:inline-block w-28">Cloud</span>
             <span className="w-20 text-right">Size</span>
             <span className="hidden md:inline-block w-32 text-right">Modified</span>
-            <span className="w-16 text-right">Actions</span>
+            <span className="w-20 text-right">Actions</span>
           </div>
         </div>
 
@@ -171,20 +411,104 @@ export default function AllFiles() {
           <div className="bg-surface rounded-2xl py-12 text-center flex flex-col items-center justify-center gap-2">
             <p className="text-sm font-semibold text-ink">No files found</p>
             <p className="text-xs text-muted">
-              Try adjusting your search query or provider filter.
+              {currentFolder
+                ? `No files in folder "${currentFolder.name}". Try uploading files.`
+                : 'Try adjusting your search query or provider filter.'}
             </p>
+            {currentFolder && (
+              <PillButton
+                variant="ghost"
+                size="sm"
+                onClick={clearFolderFilter}
+                className="mt-2"
+              >
+                View All Files
+              </PillButton>
+            )}
           </div>
         ) : (
           filteredFiles.map((file) => (
             <FileRow
               key={file.id}
               file={file}
+              isSelected={selectedIds.includes(file.id)}
+              onToggleSelect={handleToggleSelect}
               onAction={handleFileAction}
               onSelect={() => handleFileAction('preview', file)}
             />
           ))
         )}
       </div>
+
+      {/* Global Modals */}
+      {activePreviewFile && (
+        <FilePreviewModal
+          isOpen={Boolean(activePreviewFile)}
+          file={activePreviewFile}
+          onClose={() => setActivePreviewFile(null)}
+        />
+      )}
+
+      {activeShareFile && (
+        <ShareModal
+          isOpen={Boolean(activeShareFile)}
+          file={activeShareFile}
+          onClose={() => setActiveShareFile(null)}
+        />
+      )}
+
+      {activeRenameFile && (
+        <RenameModal
+          isOpen={Boolean(activeRenameFile)}
+          initialName={activeRenameFile.name}
+          title="Rename File"
+          onRename={(newName) => {
+            renameFile(activeRenameFile.id, newName);
+            showToast(`Renamed file to "${newName}"`, 'success');
+            setActiveRenameFile(null);
+          }}
+          onClose={() => setActiveRenameFile(null)}
+        />
+      )}
+
+      {showMoveModal && (
+        <MoveModal
+          isOpen={showMoveModal}
+          fileCount={movingFileIds.length}
+          onMove={handleExecuteMove}
+          onClose={() => {
+            setShowMoveModal(false);
+            setMovingFileIds([]);
+          }}
+        />
+      )}
+
+      {showUploadModal && (
+        <UploadModal
+          isOpen={showUploadModal}
+          defaultFolderId={folderParam}
+          onClose={() => setShowUploadModal(false)}
+        />
+      )}
+
+      {showCreateFolderModal && (
+        <CreateFolderModal
+          isOpen={showCreateFolderModal}
+          onClose={() => setShowCreateFolderModal(false)}
+        />
+      )}
+
+      <ConfirmModal
+        isOpen={deleteConfirmState.isOpen}
+        title={deleteConfirmState.title}
+        message={deleteConfirmState.message}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() =>
+          setDeleteConfirmState({ isOpen: false, ids: [], title: '', message: '' })
+        }
+      />
     </div>
   );
 }

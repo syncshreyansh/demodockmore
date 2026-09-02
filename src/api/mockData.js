@@ -122,6 +122,7 @@ export const mockFiles = [
     accountEmail: "mailshreyanshhere@gmail.com",
     modified: "Today, 10:24 AM",
     path: "/Design System/2026/",
+    folderId: "fold-1",
     starred: true,
   },
   {
@@ -135,6 +136,7 @@ export const mockFiles = [
     accountEmail: "shreyanshgottech@gmail.com",
     modified: "Yesterday, 4:15 PM",
     path: "/Presentations/",
+    folderId: "fold-1",
     starred: true,
   },
   {
@@ -148,6 +150,7 @@ export const mockFiles = [
     accountEmail: "reachbitsandgears@outlook.com",
     modified: "Aug 29, 2026",
     path: "/Architecture/",
+    folderId: "fold-2",
     starred: false,
   },
   {
@@ -161,6 +164,7 @@ export const mockFiles = [
     accountEmail: "maishreyanshhere@gmail.com",
     modified: "Aug 26, 2026",
     path: "/Backups/DB/",
+    folderId: "fold-3",
     starred: false,
   },
   {
@@ -174,6 +178,7 @@ export const mockFiles = [
     accountEmail: "mailshreyanshhere@gmail.com",
     modified: "Aug 24, 2026",
     path: "/Recordings/",
+    folderId: "fold-1",
     starred: false,
   },
   {
@@ -187,6 +192,7 @@ export const mockFiles = [
     accountEmail: "reachbitsandgears@outlook.com",
     modified: "Aug 22, 2026",
     path: "/Finance/",
+    folderId: "fold-2",
     starred: true,
   },
   {
@@ -200,6 +206,7 @@ export const mockFiles = [
     accountEmail: "maishreyanshhere@gmail.com",
     modified: "Aug 20, 2026",
     path: "/Media/Renders/",
+    folderId: "fold-3",
     starred: false,
   },
   {
@@ -213,6 +220,7 @@ export const mockFiles = [
     accountEmail: "shreyansh.studio@dropbox.com",
     modified: "Aug 18, 2026",
     path: "/Assets/",
+    folderId: "fold-4",
     starred: false,
   },
 ];

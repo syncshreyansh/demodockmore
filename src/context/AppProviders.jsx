@@ -1,8 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { ToastProvider } from './ToastContext';
 import { AccountsProvider } from './AccountsContext';
 import { FilesProvider } from './FilesContext';
 import { TransfersProvider } from './TransfersContext';
+import { CodeProjectsProvider } from './CodeProjectsContext';
 
 export default function AppProviders({ children }) {
   return (
@@ -10,11 +11,12 @@ export default function AppProviders({ children }) {
       <AccountsProvider>
         <FilesProvider>
           <TransfersProvider>
-            {children}
+            <CodeProjectsProvider>
+              {children}
+            </CodeProjectsProvider>
           </TransfersProvider>
         </FilesProvider>
       </AccountsProvider>
     </ToastProvider>
   );
 }
-

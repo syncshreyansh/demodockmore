@@ -6,9 +6,11 @@ import AppLayout from './components/layout/AppLayout';
 import Home from './pages/Home';
 import AllFiles from './pages/AllFiles';
 import Transfers from './pages/Transfers';
+import Code from './pages/Code';
 import Accounts from './pages/Accounts';
 import Settings from './pages/Settings';
 import IntroLoader, { shouldSkipIntro } from './components/ui/IntroLoader';
+import { IntroProvider } from './context/IntroContext';
 
 export default function App() {
   const [introComplete, setIntroComplete] = useState(shouldSkipIntro);
@@ -43,34 +45,37 @@ export default function App() {
 
   return (
     <AppProviders>
-      <BrowserRouter>
-        {!introComplete && (
-          <IntroLoader
-            onExitStart={handleExitStart}
-            onComplete={handleIntroComplete}
-          />
-        )}
+      <IntroProvider value={{ introComplete }}>
+        <BrowserRouter>
+          {!introComplete && (
+            <IntroLoader
+              onExitStart={handleExitStart}
+              onComplete={handleIntroComplete}
+            />
+          )}
 
-        <div
-          ref={contentRef}
-          style={{
-            opacity: introComplete ? 1 : 0,
-            transform: introComplete ? 'scale(1)' : 'scale(0.98)',
-            pointerEvents: introComplete ? 'auto' : 'none',
-          }}
-        >
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/files" element={<AllFiles />} />
-              <Route path="/transfers" element={<Transfers />} />
-              <Route path="/accounts" element={<Accounts />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </div>
-      </BrowserRouter>
+          <div
+            ref={contentRef}
+            style={{
+              opacity: introComplete ? 1 : 0,
+              transform: introComplete ? 'scale(1)' : 'scale(0.98)',
+              pointerEvents: introComplete ? 'auto' : 'none',
+            }}
+          >
+            <Routes>
+              <Route element={<AppLayout introComplete={introComplete} />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/files" element={<AllFiles />} />
+                <Route path="/transfers" element={<Transfers />} />
+                <Route path="/code" element={<Code />} />
+                <Route path="/accounts" element={<Accounts />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </div>
+        </BrowserRouter>
+      </IntroProvider>
     </AppProviders>
   );
 }

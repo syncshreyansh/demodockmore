@@ -1,0 +1,806 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Eye,
+  EyeOff,
+  MoreVertical,
+  GitCommit,
+} from 'lucide-react';
+import gsap from 'gsap';
+import ProviderIcon from './ProviderIcon';
+import ConfirmModal from './ConfirmModal';
+
+/**
+ * CodeProjectCard
+ * Card component for the Code section featuring GSAP sliding pill toggle
+ * and multi-stage Push to GitHub fill animation.
+ */
+export default function CodeProjectCard({
+  project,
+  onViewSnapshots,
+  onRemoveProject,
+  onPushToGitHub,
+  onToggleWatch,
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isPushingLocal, setIsPushingLocal] = useState(false);
+
+  const menuRef = useRef(null);
+
+  // Toggle sliding pill refs
+  const pillRef = useRef(null);
+  const toggleRef = useRef(null);
+
+  // Push button refs
+  const btnRef = useRef(null);
+  const btnContentRef = useRef(null);
+  const btnTextRef = useRef(null);
+  const githubIconRef = useRef(null);
+  const githubFillRef = useRef(null);
+  const tickContainerRef = useRef(null);
+  const tickPathRef = useRef(null);
+
+  const isWatching = project.watchStatus === 'watching';
+
+  // Close dropdown when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    }
+    function handleEscape(e) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [menuOpen]);
+
+  const isFirstMount = useRef(true);
+
+  // Sync and animate sliding pill position whenever isWatching changes
+  useEffect(() => {
+    if (!pillRef.current) return;
+    const targetX = isWatching ? 0 : 49;
+
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      gsap.set(pillRef.current, { x: targetX });
+      return;
+    }
+
+    gsap.to(pillRef.current, {
+      x: targetX,
+      duration: 0.32,
+      ease: 'power2.inOut',
+      overwrite: 'auto',
+    });
+  }, [isWatching]);
+
+  // Sliding pill toggle click handler
+  const handleToggleClick = () => {
+    onToggleWatch?.(project);
+  };
+
+  // Multi-stage Push to GitHub animation
+  const handlePushClick = () => {
+    if (isPushingLocal) return;
+    setIsPushingLocal(true);
+
+    const btn = btnRef.current;
+    const btnText = btnTextRef.current;
+    const githubIcon = githubIconRef.current;
+    const githubFill = githubFillRef.current;
+    const tickContainer = tickContainerRef.current;
+    const tickPath = tickPathRef.current;
+
+    if (!btn || !btnText || !githubIcon || !githubFill || !tickContainer || !tickPath) {
+      onPushToGitHub?.(project);
+      setIsPushingLocal(false);
+      return;
+    }
+
+    // Freeze button width to prevent layout collapse
+    const currentWidth = btn.offsetWidth;
+    btn.style.width = `${currentWidth}px`;
+
+    // Calculate center offset for GitHub icon
+    const btnRect = btn.getBoundingClientRect();
+    const iconRect = githubIcon.getBoundingClientRect();
+    const centerOffsetX = (btnRect.left + btnRect.width / 2) - (iconRect.left + iconRect.width / 2);
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        btn.style.width = '';
+        setIsPushingLocal(false);
+        onPushToGitHub?.(project);
+      },
+    });
+
+    // --- STAGE 1: Text Dissolve (0ms -> 300ms) ---
+    tl.to(btnText, {
+      opacity: 0,
+      y: 4,
+      duration: 0.3,
+      ease: 'power2.inOut',
+    }, 0);
+
+    // Smoothly slide GitHub icon toward the center as text dissolves
+    tl.to(githubIcon, {
+      x: centerOffsetX,
+      duration: 0.3,
+      ease: 'power2.inOut',
+    }, 0);
+
+    // --- STAGE 2: GitHub Logo Centers & Fill Animation (300ms -> 2500ms) ---
+    // Logo grows slightly: scale(1) -> scale(1.15) over 200ms
+    tl.to(githubIcon, {
+      scale: 1.15,
+      duration: 0.2,
+      ease: 'power1.out',
+    }, 0.3);
+
+    // Fill animation from bottom to top (2000ms duration, 0.5s -> 2.5s)
+    tl.fromTo(
+      githubFill,
+      { clipPath: 'inset(100% 0 0 0)' },
+      {
+        clipPath: 'inset(0% 0 0 0)',
+        duration: 2.0,
+        ease: 'power1.inOut',
+      },
+      0.5
+    );
+
+    // --- STAGE 3: Success Tick (2500ms -> 3500ms) ---
+    // Logo scales down and fades out over 200ms (2.5s -> 2.7s)
+    tl.to(githubIcon, {
+      scale: 0.8,
+      opacity: 0,
+      duration: 0.2,
+      ease: 'power2.in',
+    }, 2.5);
+
+    // Tick appears: scales from 0.5 to 1 with spring bounce, draws stroke
+    tl.set(tickContainer, { visibility: 'visible' }, 2.6);
+    tl.fromTo(
+      tickContainer,
+      { opacity: 0, scale: 0.5 },
+      {
+        opacity: 1,
+        scale: 1,
+        duration: 0.5,
+        ease: 'back.out(1.7)',
+      },
+      2.6
+    );
+    tl.fromTo(
+      tickPath,
+      { strokeDashoffset: 30 },
+      {
+        strokeDashoffset: 0,
+        duration: 0.45,
+        ease: 'power2.out',
+      },
+      2.6
+    );
+
+    // Tick holds for ~600ms (until 3.5s)
+
+    // --- STAGE 4: Return to Normal (3500ms -> 4000ms) ---
+    // Tick fades and scales down
+    tl.to(tickContainer, {
+      opacity: 0,
+      scale: 0.8,
+      duration: 0.2,
+      ease: 'power2.in',
+    }, 3.5);
+    tl.set(tickContainer, { visibility: 'hidden' }, 3.7);
+
+    // Reset GitHub logo position, scale, opacity, and clipPath
+    tl.to(githubIcon, {
+      x: 0,
+      scale: 1,
+      opacity: 1,
+      duration: 0.3,
+      ease: 'power2.out',
+    }, 3.7);
+    tl.set(githubFill, { clipPath: 'inset(100% 0 0 0)' }, 3.7);
+
+    // Text fades back in
+    tl.to(btnText, {
+      opacity: 1,
+      y: 0,
+      duration: 0.3,
+      ease: 'power2.out',
+    }, 3.7);
+  };
+
+  const handleRemoveConfirm = () => {
+    setConfirmOpen(false);
+    onRemoveProject?.(project);
+  };
+
+  return (
+    <>
+      <div
+        className="code-card"
+        style={{
+          background: '#E9E9E9',
+          borderRadius: '20px',
+          padding: '28px 28px 22px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0px',
+          position: 'relative',
+          fontFamily: '"DM Sans", sans-serif',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+          transition: 'box-shadow 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)';
+        }}
+      >
+        {/* Row 1: Project name + sync interval badge + Push to GitHub button */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            marginBottom: '18px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '12px',
+              minWidth: 0,
+              flex: 1,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '28px',
+                fontWeight: 600,
+                color: '#303030',
+                margin: 0,
+                lineHeight: 1.15,
+                letterSpacing: '-0.02em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {project.name}
+            </h3>
+
+            <span
+              style={{
+                fontSize: '14px',
+                fontWeight: 500,
+                color: '#8A8785',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Every {project.interval} min
+            </span>
+          </div>
+
+          {/* Push to GitHub button (Enlarged size & DM Sans Regular font) */}
+          <button
+            ref={btnRef}
+            type="button"
+            onClick={handlePushClick}
+            disabled={isPushingLocal}
+            aria-label="Push to GitHub"
+            style={{
+              position: 'relative',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#303030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '16px',
+              padding: '12px 24px',
+              fontSize: '15px',
+              fontWeight: 400,
+              cursor: isPushingLocal ? 'not-allowed' : 'pointer',
+              pointerEvents: isPushingLocal ? 'none' : 'auto',
+              whiteSpace: 'nowrap',
+              fontFamily: '"DM Sans", sans-serif',
+              flexShrink: 0,
+              overflow: 'hidden',
+              height: '48px',
+              boxSizing: 'border-box',
+              letterSpacing: '-0.01em',
+            }}
+            onMouseEnter={(e) => {
+              if (!isPushingLocal) e.currentTarget.style.background = '#1a1a1a';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#303030';
+            }}
+          >
+            {/* Content row: GitHub icon + text */}
+            <div
+              ref={btnContentRef}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                justifyContent: 'center',
+              }}
+            >
+              {/* GitHub icon container: 22px x 22px */}
+              <div
+                ref={githubIconRef}
+                style={{
+                  position: 'relative',
+                  width: '22px',
+                  height: '22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transformOrigin: 'center center',
+                }}
+              >
+                {/* Base SVG layer (22px x 22px) */}
+                <svg
+                  viewBox="0 0 24 24"
+                  style={{
+                    width: '22px',
+                    height: '22px',
+                    fill: '#ffffff',
+                    opacity: 0.35,
+                    position: 'absolute',
+                    inset: 0,
+                  }}
+                >
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+
+                {/* Filled SVG overlay layer (22px x 22px) */}
+                <svg
+                  ref={githubFillRef}
+                  viewBox="0 0 24 24"
+                  style={{
+                    width: '22px',
+                    height: '22px',
+                    fill: '#ffffff',
+                    position: 'absolute',
+                    inset: 0,
+                    clipPath: 'inset(100% 0 0 0)',
+                  }}
+                >
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+              </div>
+
+              {/* Text label: DM Sans Regular (fontWeight 400) */}
+              <span
+                ref={btnTextRef}
+                style={{
+                  display: 'inline-block',
+                  fontWeight: 400,
+                  willChange: 'transform, opacity',
+                }}
+              >
+                Push to GitHub
+              </span>
+            </div>
+
+            {/* Success Tick SVG: centered, hidden initially */}
+            <div
+              ref={tickContainerRef}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0,
+                visibility: 'hidden',
+                pointerEvents: 'none',
+              }}
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#e9e9e9"
+                strokeWidth="2.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ transformOrigin: 'center center' }}
+              >
+                <polyline
+                  ref={tickPathRef}
+                  points="20 6 9 17 4 12"
+                  style={{
+                    strokeDasharray: 30,
+                    strokeDashoffset: 30,
+                  }}
+                />
+              </svg>
+            </div>
+          </button>
+        </div>
+
+        {/* Middle row: Left column (Eye toggle + Last snapshot) & Right column (Snapshot panel) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            marginBottom: '18px',
+          }}
+        >
+          {/* Left column */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Eye toggle — exactly as it was in the old Row 2 */}
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button
+                ref={toggleRef}
+                type="button"
+                onClick={handleToggleClick}
+                aria-label={isWatching ? 'Pause watcher' : 'Resume watcher'}
+                title={isWatching ? 'Watching – click to pause' : 'Paused – click to resume'}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: '#FAFAF9',
+                  border: 'none',
+                  borderRadius: '18px',
+                  padding: '5px 6px',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  gap: '3px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                }}
+              >
+                {/* Single animated sliding pill background */}
+                <span
+                  ref={pillRef}
+                  style={{
+                    position: 'absolute',
+                    top: '5px',
+                    left: '5px',
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '13px',
+                    background: '#303030',
+                    zIndex: 0,
+                    willChange: 'transform',
+                    pointerEvents: 'none',
+                  }}
+                />
+
+                {/* Eye open slot */}
+                <span
+                  style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '13px',
+                    background: 'transparent',
+                  }}
+                >
+                  <Eye
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      color: isWatching ? '#ffffff' : '#8A8785',
+                      strokeWidth: 1.8,
+                      transition: 'color 0.2s ease',
+                    }}
+                  />
+                </span>
+
+                {/* Eye off slot */}
+                <span
+                  style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '13px',
+                    background: 'transparent',
+                  }}
+                >
+                  <EyeOff
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      color: isWatching ? '#8A8785' : '#ffffff',
+                      strokeWidth: 1.8,
+                      transition: 'color 0.2s ease',
+                    }}
+                  />
+                </span>
+              </button>
+            </div>
+
+            {/* Last snapshot text */}
+            <p style={{ fontSize: '13px', fontWeight: 500, color: '#8A8785', margin: 0 }}>
+              Last snapshot: {project.lastSnapshot}
+            </p>
+          </div>
+
+          {/* Right column — Snapshot panel */}
+          <div
+            style={{
+              background: '#D9D8D6',
+              borderRadius: '10px',
+              padding: '12px 13px',
+              width: '290px',
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              minHeight: '166px',
+              boxSizing: 'border-box',
+              justifyContent: 'space-between',
+            }}
+          >
+            {/* Snapshot count label */}
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#303030', margin: 0 }}>
+              {project.snapshotCount} snapshots
+            </p>
+
+            {/* Inner white commit box */}
+            <div
+              style={{
+                background: '#FAFAF9',
+                borderRadius: '9px',
+                padding: '10px 12px',
+                border: '1px solid #E9E9E9',
+              }}
+            >
+              {/* Top row: "Last real commit: X" on left, GitCommit icon on RIGHT */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '6px',
+                }}
+              >
+                <span style={{ fontSize: '11px', fontWeight: 500, color: '#8A8785' }}>
+                  Last real commit: {project.lastCommitTime}
+                </span>
+                <GitCommit
+                  style={{
+                    width: '15px',
+                    height: '15px',
+                    color: '#8A8785',
+                    strokeWidth: 1.8,
+                    flexShrink: 0,
+                    marginLeft: '8px',
+                  }}
+                />
+              </div>
+
+              {/* Commit message */}
+              <p
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#303030',
+                  margin: 0,
+                  lineHeight: 1.35,
+                  wordBreak: 'break-word',
+                }}
+              >
+                "{project.lastCommitMessage}"
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 5: Footer – docked in + provider + email + three-dot menu */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+            <span
+              style={{
+                fontSize: '14px',
+                fontWeight: 500,
+                color: '#8A8785',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              docked in:
+            </span>
+            <ProviderIcon provider={project.provider} size="xs" />
+            <span
+              style={{
+                fontSize: '14px',
+                fontWeight: 500,
+                color: '#303030',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {project.accountEmail}
+            </span>
+          </div>
+
+          {/* Three-dot overflow menu */}
+          <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              aria-label="Project actions menu"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '8px',
+                width: '32px',
+                height: '32px',
+                cursor: 'pointer',
+                color: '#303030',
+                transition: 'background 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0,0,0,0.06)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <MoreVertical style={{ width: '20px', height: '20px' }} />
+            </button>
+
+            {/* Dropdown menu */}
+            {menuOpen && (
+              <div
+                role="menu"
+                aria-label="Project actions"
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  right: 0,
+                  marginBottom: '6px',
+                  background: '#FAFAF9',
+                  border: '1px solid #D9D8D6',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                  padding: '4px',
+                  minWidth: '170px',
+                  zIndex: 50,
+                  animation: 'codeMenuFadeIn 0.12s ease-out',
+                }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onViewSnapshots?.(project);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '9px 14px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#303030',
+                    cursor: 'pointer',
+                    transition: 'background 0.12s ease',
+                    textAlign: 'left',
+                    fontFamily: '"DM Sans", sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <Eye style={{ width: '15px', height: '15px', color: '#8A8785', strokeWidth: 2 }} />
+                  View snapshots
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setConfirmOpen(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '9px 14px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    transition: 'background 0.12s ease',
+                    textAlign: 'left',
+                    fontFamily: '"DM Sans", sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(220,38,38,0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                  </svg>
+                  Remove project
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Confirm removal modal */}
+      <ConfirmModal
+        isOpen={confirmOpen}
+        title={`Remove "${project.name}"?`}
+        message="This will stop shadow snapshotting and remove all local snapshot history. Cloud backups already synced will remain."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleRemoveConfirm}
+        onCancel={() => setConfirmOpen(false)}
+      />
+    </>
+  );
+}

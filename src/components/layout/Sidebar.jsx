@@ -3,6 +3,7 @@ import {
   Home,
   Folder,
   ArrowLeftRight,
+  Code,
   Settings,
   HelpCircle,
   Plus,
@@ -58,7 +59,7 @@ export default function Sidebar({ onCloseMobile }) {
             <Logo />
           </div>
 
-          {/* Primary Navigation: Home, All Files, Transfers */}
+          {/* Primary Navigation: Home, All Files, Transfers, Code */}
           <nav className="flex flex-col gap-1">
             <NavItem
               to="/"
@@ -77,6 +78,12 @@ export default function Sidebar({ onCloseMobile }) {
               to="/transfers"
               icon={ArrowLeftRight}
               label="Transfers"
+              onClick={onCloseMobile}
+            />
+            <NavItem
+              to="/code"
+              icon={Code}
+              label="Code"
               onClick={onCloseMobile}
             />
           </nav>

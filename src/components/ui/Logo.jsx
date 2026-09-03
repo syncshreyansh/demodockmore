@@ -12,7 +12,7 @@ export default function Logo({ className = '', to = '/' }) {
       <img
         src={logoBlack}
         alt="dockMore."
-        className="w-[132px] h-auto object-contain block"
+        className="w-[200px] h-auto object-contain block"
       />
     </Link>
   );

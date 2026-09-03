@@ -1,4 +1,4 @@
-﻿import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import '../../styles/intro-loader.css';
@@ -20,7 +20,7 @@ const INITIAL_DELAY = 0.1;
 const LETTER_DURATION = 0.52;
 const LETTER_STAGGER = 0.075;
 const HOLD_AFTER_REVEAL = 0.25;
-const EXIT_DURATION = 0.28;
+const EXIT_DURATION = 0.45;
 const CONTENT_CROSSFADE_LEAD = 0.12;
 
 /**
@@ -116,15 +116,15 @@ export default function IntroLoader({ onExitStart, onComplete }) {
         // Content crossfade begins slightly before loader exit
         tl.call(() => onExitStart?.(), null, exitStart - CONTENT_CROSSFADE_LEAD);
 
-        // 3. Dynamic zoom-in + fade out effect on exit
+        // 3. Dynamic zoom-in + fade out effect on exit (Optimized)
         tl.to(
           wordRef.current,
           {
             opacity: 0,
-            scale: 1.65,
-            filter: 'blur(10px)',
+            scale: 1.15, // Slight zoom instead of massive 1.65
+            // Removed filter: blur() to fix GPU jank/skipping
             duration: EXIT_DURATION,
-            ease: 'power3.in',
+            ease: 'power2.out', // Smoother ease than power3.in
             force3D: true,
           },
           exitStart

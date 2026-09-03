@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -39,4 +39,31 @@
 
 .sidebar-scroll:hover::-webkit-scrollbar-thumb:hover {
   background: #8A8785;
+}
+
+/* Code card dropdown menu animation */
+@keyframes codeMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Typewriter letter fade-in animation */
+@keyframes letterFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-letter-fade-in {
+  display: inline;
+  animation: letterFadeIn 0.22s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }

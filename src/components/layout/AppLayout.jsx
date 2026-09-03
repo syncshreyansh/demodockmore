@@ -8,10 +8,18 @@ import SearchInput from '../ui/SearchInput';
 import ProviderIcon from '../ui/ProviderIcon';
 import UploadModal from '../ui/UploadModal';
 import FilePreviewModal from '../ui/FilePreviewModal';
+import TextType from '../ui/TextType';
+import { useIntro } from '../../context/IntroContext';
+import { shouldSkipIntro as checkReducedMotion } from '../ui/IntroLoader';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useFiles } from '../../hooks/useFiles';
 
-export default function AppLayout() {
+// Module-scoped flag: resets on browser reload, persists across client-side page transitions
+let hasAnimatedGreetingThisLoad = false;
+
+export default function AppLayout({ introComplete: propIntroComplete }) {
+  const { introComplete: ctxIntroComplete } = useIntro();
+  const introComplete = propIntroComplete ?? ctxIntroComplete ?? true;
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,6 +32,32 @@ export default function AppLayout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const searchRef = useRef(null);
+
+  // --- Greeting animation: fires on reload after intro loader, but not on switching pages ---
+  const [hasAnimatedGreeting, setHasAnimatedGreeting] = useState(
+    () => hasAnimatedGreetingThisLoad || checkReducedMotion()
+  );
+
+  // Clean up any legacy sessionStorage flag from prior versions
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('dockmore_greeting_animated');
+    } catch {}
+  }, []);
+
+  // If intro completes while on a non-home page, mark greeting as completed
+  // so switching to the home page later will not animate.
+  useEffect(() => {
+    if (introComplete && !isHome) {
+      hasAnimatedGreetingThisLoad = true;
+      setHasAnimatedGreeting(true);
+    }
+  }, [introComplete, isHome]);
+
+  const handleGreetingComplete = () => {
+    hasAnimatedGreetingThisLoad = true;
+    setHasAnimatedGreeting(true);
+  };
 
   // Ensure clean light mode
   useEffect(() => {
@@ -101,8 +135,21 @@ export default function AppLayout() {
         return 'Cloud Accounts';
       case '/settings':
         return 'Settings';
+      case '/code':
+        return 'Code';
       default:
         return 'Dashboard';
+    }
+  };
+
+  const getPageSubtitle = () => {
+    switch (location.pathname) {
+      case '/':
+        return "Here's what's happening with your clouds today.";
+      case '/code':
+        return 'Automatic snapshots and clean commits for your projects.';
+      default:
+        return null;
     }
   };
 
@@ -176,11 +223,35 @@ export default function AppLayout() {
           {/* Left Title / Greeting with generous leading and padding for full descenders ('g', 'y', etc.) */}
           <div className="min-w-0 flex-1 flex flex-col justify-center overflow-visible py-1">
             <h1 className="font-serif italic text-[32px] sm:text-[38px] md:text-[44px] leading-[1.2] text-ink font-bold tracking-[-0.038em] overflow-visible pb-0.5">
-              {getPageTitle()}
+              {isHome ? (
+                <>
+                  <span>{`${getGreeting()}, `}</span>
+                  {introComplete ? (
+                    <TextType
+                      as="span"
+                      text={user?.name?.split(' ')[0] || 'Shreyansh'}
+                      typingSpeed={60}
+                      initialDelay={hasAnimatedGreetingThisLoad ? 0 : 200}
+                      loop={false}
+                      skipAnimation={hasAnimatedGreetingThisLoad}
+                      showCursor={true}
+                      cursorCharacter="|"
+                      cursorClassName="ml-0.5 font-sans not-italic font-normal select-none opacity-80"
+                      onSentenceComplete={handleGreetingComplete}
+                    />
+                  ) : (
+                    <span className="inline-block opacity-80 ml-0.5 font-sans not-italic font-normal select-none">
+                      |
+                    </span>
+                  )}
+                </>
+              ) : (
+                getPageTitle()
+              )}
             </h1>
-            {isHome && (
+            {getPageSubtitle() && (
               <p className="font-sans text-xs md:text-sm text-muted mt-0.5 font-medium leading-tight">
-                Here's what's happening with your clouds today.
+                {getPageSubtitle()}
               </p>
             )}
           </div>

@@ -14,6 +14,7 @@ import { IntroProvider } from './context/IntroContext';
 
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
+import CliAuth from './pages/CliAuth';
 import ProtectedRoute, { PublicOnlyRoute } from './components/layout/ProtectedRoute';
 
 export default function App() {
@@ -84,6 +85,9 @@ export default function App() {
                   </PublicOnlyRoute>
                 }
               />
+
+              {/* CLI Auth — handles its own auth redirect internally */}
+              <Route path="/cli-auth" element={<CliAuth />} />
 
               {/* Protected Dashboard Routes */}
               <Route

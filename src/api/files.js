@@ -57,7 +57,7 @@ export async function getFiles(filters = {}) {
             extension: ext,
             size: formatBytes(f.size),
             sizeBytes: f.size || 0,
-            provider: acc.provider || 'google-drive',
+            provider: (acc.provider || 'google-drive').replace('_', '-'),
             accountEmail: acc.email,
             modified: formatDate(f.modifiedAt),
             path: '/',

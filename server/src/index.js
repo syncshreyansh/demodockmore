@@ -20,6 +20,7 @@ const healthRouter        = require('./routes/health');
 const googleAuthRouter    = require('./routes/auth.google');
 const accountsRouter      = require('./routes/accounts');
 const codeProjectsRouter  = require('./routes/codeProjects');
+const cliRouter           = require('./routes/cli');
 
 // ── App setup ────────────────────────────────────────────────────────────────
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/health',        healthRouter);
 app.use('/api/auth/google',   googleAuthRouter);   // /connect, /callback
 app.use('/api/accounts',      accountsRouter);     // /:accountId/files
 app.use('/api/code-projects', codeProjectsRouter); // CRUD + /snapshots + /commit
+app.use('/api/cli',           cliRouter);            // CLI login handshake
 
 // 404 fallback
 app.use((_req, res) => {

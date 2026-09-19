@@ -114,6 +114,51 @@ export const mockFolders = [
 
 export const mockFiles = [
   {
+    id: "file-demo-photo",
+    name: "Mountain_Landscape_4K.jpg",
+    type: "image",
+    extension: "jpg",
+    size: "2.4 MB",
+    sizeBytes: 2516582,
+    provider: "google-drive",
+    accountEmail: "mailshreyanshhere@gmail.com",
+    modified: "Today, 9:00 AM",
+    path: "/Photos/",
+    folderId: "fold-1",
+    starred: false,
+    previewUrl: "/demo/demo-photo.jpg",
+  },
+  {
+    id: "file-demo-video",
+    name: "Product_Demo_Clip.mp4",
+    type: "video",
+    extension: "mp4",
+    size: "12.5 MB",
+    sizeBytes: 13107200,
+    provider: "google-drive",
+    accountEmail: "mailshreyanshhere@gmail.com",
+    modified: "Today, 8:30 AM",
+    path: "/Videos/",
+    folderId: "fold-1",
+    starred: false,
+    previewUrl: "/demo/demo-video.mp4",
+  },
+  {
+    id: "file-demo-audio",
+    name: "Podcast_Episode_42.mp3",
+    type: "audio",
+    extension: "mp3",
+    size: "8.2 MB",
+    sizeBytes: 8598323,
+    provider: "onedrive",
+    accountEmail: "reachbitsandgears@outlook.com",
+    modified: "Today, 7:45 AM",
+    path: "/Audio/",
+    folderId: "fold-2",
+    starred: false,
+    previewUrl: "/demo/demo-audio.mp3",
+  },
+  {
     id: "file-1",
     name: "Product_Design_System_v2.4.fig",
     type: "design",
@@ -126,6 +171,7 @@ export const mockFiles = [
     path: "/Design System/2026/",
     folderId: "fold-1",
     starred: true,
+    previewUrl: null,
   },
   {
     id: "file-2",
@@ -140,6 +186,7 @@ export const mockFiles = [
     path: "/Presentations/",
     folderId: "fold-1",
     starred: true,
+    previewUrl: null,
   },
   {
     id: "file-3",
@@ -154,6 +201,7 @@ export const mockFiles = [
     path: "/Architecture/",
     folderId: "fold-2",
     starred: false,
+    previewUrl: null,
   },
   {
     id: "file-4",
@@ -168,6 +216,7 @@ export const mockFiles = [
     path: "/Backups/DB/",
     folderId: "fold-3",
     starred: false,
+    previewUrl: null,
   },
   {
     id: "file-5",
@@ -182,6 +231,7 @@ export const mockFiles = [
     path: "/Recordings/",
     folderId: "fold-1",
     starred: false,
+    previewUrl: "/demo/demo-video.mp4",
   },
   {
     id: "file-6",
@@ -196,6 +246,7 @@ export const mockFiles = [
     path: "/Finance/",
     folderId: "fold-2",
     starred: true,
+    previewUrl: null,
   },
   {
     id: "file-7",
@@ -210,6 +261,7 @@ export const mockFiles = [
     path: "/Media/Renders/",
     folderId: "fold-3",
     starred: false,
+    previewUrl: null,
   },
   {
     id: "file-8",
@@ -224,6 +276,7 @@ export const mockFiles = [
     path: "/Assets/",
     folderId: "fold-4",
     starred: false,
+    previewUrl: null,
   },
 ];
 

@@ -67,3 +67,41 @@
   display: inline;
   animation: letterFadeIn 0.22s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
+
+/* Tooltip animation: fades and lifts in with translateX(-50%) locked so it NEVER shifts horizontally */
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Eye pupil scanning animation */
+@keyframes eyeScan {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(2.5px); }
+  75% { transform: translateX(-2.5px); }
+}
+
+.animate-pupil circle {
+  animation: eyeScan 4s ease-in-out infinite;
+}
+
+/* Audio waveform bars animation */
+@keyframes audioWave {
+  0%, 100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.animate-audio-wave {
+  animation: audioWave 1.2s ease-in-out infinite;
+  transform-origin: bottom;
+}
+

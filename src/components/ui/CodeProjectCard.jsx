@@ -4,10 +4,14 @@ import {
   EyeOff,
   MoreVertical,
   GitCommit,
+  Download,
+  Cloud,
 } from 'lucide-react';
 import gsap from 'gsap';
 import ProviderIcon from './ProviderIcon';
 import ConfirmModal from './ConfirmModal';
+import ChangeBackupAccountModal from './ChangeBackupAccountModal';
+import { useToast } from '../../context/ToastContext';
 
 /**
  * CodeProjectCard
@@ -20,16 +24,47 @@ export default function CodeProjectCard({
   onRemoveProject,
   onPushToGitHub,
   onToggleWatch,
+  onChangeBackupAccount,
 }) {
+  const { showToast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [changeAccountOpen, setChangeAccountOpen] = useState(false);
   const [isPushingLocal, setIsPushingLocal] = useState(false);
 
   const menuRef = useRef(null);
 
-  // Toggle sliding pill refs
+  // Toggle sliding pill refs & custom slot tooltip
   const pillRef = useRef(null);
   const toggleRef = useRef(null);
+  const [hoveredSlot, setHoveredSlot] = useState(null); // 'watching' | 'paused'
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipTimeoutRef = useRef(null);
+
+  const handleButtonMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const slot = x > rect.width / 2 ? 'paused' : 'watching';
+    if (hoveredSlot !== slot) {
+      setHoveredSlot(slot);
+      if (!showTooltip) {
+        clearTimeout(tooltipTimeoutRef.current);
+        tooltipTimeoutRef.current = setTimeout(() => {
+          setShowTooltip(true);
+        }, 1000);
+      }
+    }
+  };
+
+  const handleToggleHoverLeave = () => {
+    clearTimeout(tooltipTimeoutRef.current);
+    setShowTooltip(false);
+    setHoveredSlot(null);
+  };
+
+  useEffect(() => {
+    return () => clearTimeout(tooltipTimeoutRef.current);
+  }, []);
 
   // Push button refs
   const btnRef = useRef(null);
@@ -221,6 +256,31 @@ export default function CodeProjectCard({
     }, 3.7);
   };
 
+  const handleDownloadZip = () => {
+    setMenuOpen(false);
+    try {
+      const filename = `${(project.name || 'project').toLowerCase().replace(/\s+/g, '-')}-backup.zip`;
+      const zipBytes = new Uint8Array([
+        0x50, 0x4B, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+      ]);
+      const blob = new Blob([zipBytes], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`Downloaded "${filename}"`, 'success');
+    } catch (err) {
+      showToast('Failed to download ZIP archive', 'error');
+    }
+  };
+
   const handleRemoveConfirm = () => {
     setConfirmOpen(false);
     onRemoveProject?.(project);
@@ -228,6 +288,16 @@ export default function CodeProjectCard({
 
   return (
     <>
+      <style>{`
+        @keyframes eyeScan {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(2.5px); }
+          75% { transform: translateX(-2.5px); }
+        }
+        .animate-pupil circle {
+          animation: eyeScan 4s ease-in-out infinite;
+        }
+      `}</style>
       <div
         className="code-card"
         style={{
@@ -449,15 +519,19 @@ export default function CodeProjectCard({
           }}
         >
           {/* Left column */}
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Eye toggle — exactly as it was in the old Row 2 */}
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <button
                 ref={toggleRef}
                 type="button"
-                onClick={handleToggleClick}
+                onClick={(e) => {
+                  handleToggleClick(e);
+                  setShowTooltip(false);
+                }}
+                onMouseMove={handleButtonMouseMove}
+                onMouseLeave={handleToggleHoverLeave}
                 aria-label={isWatching ? 'Pause watcher' : 'Resume watcher'}
-                title={isWatching ? 'Watching – click to pause' : 'Paused – click to resume'}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -503,6 +577,7 @@ export default function CodeProjectCard({
                   }}
                 >
                   <Eye
+                    className={isWatching ? 'animate-pupil' : ''}
                     style={{
                       width: '22px',
                       height: '22px',
@@ -537,6 +612,34 @@ export default function CodeProjectCard({
                     }}
                   />
                 </span>
+
+                {/* Custom themed tooltip (1s hover delay, positioned directly under hovered slot) */}
+                {showTooltip && hoveredSlot && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: hoveredSlot === 'paused' ? '74px' : '33px',
+                      transform: 'translateX(-50%)',
+                      marginTop: '6px',
+                      background: '#303030',
+                      color: '#FAFAF9',
+                      padding: '4px 8px',
+                      borderRadius: '5px',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      fontFamily: '"DM Sans", sans-serif',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      zIndex: 20,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      animation: 'tooltipFadeIn 0.15s ease-out forwards',
+                      transition: 'left 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
+                    }}
+                  >
+                    {hoveredSlot === 'paused' ? 'Paused' : 'Watching'}
+                  </div>
+                )}
               </button>
             </div>
 
@@ -703,6 +806,7 @@ export default function CodeProjectCard({
                   animation: 'codeMenuFadeIn 0.12s ease-out',
                 }}
               >
+                {/* 1. View snapshots */}
                 <button
                   type="button"
                   role="menuitem"
@@ -738,6 +842,78 @@ export default function CodeProjectCard({
                   View snapshots
                 </button>
 
+                {/* 2. Download as zip */}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleDownloadZip}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '9px 14px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#303030',
+                    cursor: 'pointer',
+                    transition: 'background 0.12s ease',
+                    textAlign: 'left',
+                    fontFamily: '"DM Sans", sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <Download style={{ width: '15px', height: '15px', color: '#8A8785', strokeWidth: 2 }} />
+                  Download as zip
+                </button>
+
+                {/* 3. Change backup account */}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setChangeAccountOpen(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '9px 14px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#303030',
+                    cursor: 'pointer',
+                    transition: 'background 0.12s ease',
+                    textAlign: 'left',
+                    fontFamily: '"DM Sans", sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <Cloud style={{ width: '15px', height: '15px', color: '#8A8785', strokeWidth: 2 }} />
+                  Change backup acc
+                </button>
+
+                <div style={{ height: '1px', background: '#E9E9E9', margin: '3px 6px' }} />
+
+                {/* 4. Remove project */}
                 <button
                   type="button"
                   role="menuitem"
@@ -789,6 +965,14 @@ export default function CodeProjectCard({
           </div>
         </div>
       </div>
+
+      {/* Change backup account modal */}
+      <ChangeBackupAccountModal
+        isOpen={changeAccountOpen}
+        onClose={() => setChangeAccountOpen(false)}
+        project={project}
+        onUpdateAccount={onChangeBackupAccount}
+      />
 
       {/* Confirm removal modal */}
       <ConfirmModal

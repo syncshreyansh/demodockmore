@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Check, FolderOpen, Edit3, Trash2, Download, Share2 } from 'lucide-react';
+import { MoreVertical, Check, FolderOpen, Edit3, Trash2, Download, Share2, Play, Music } from 'lucide-react';
 import ProviderIcon from './ProviderIcon';
 import { getFileIcon } from './FileRow';
 
@@ -33,10 +33,17 @@ export default function FileGridCard({
     };
   }, [menuOpen]);
 
-  // Generate a mock thumbnail for images/videos
+  // Generate thumbnail for images/videos/audio
   const cleanExt = (extension || '').toLowerCase().replace('.', '');
-  const isMedia = ['png', 'jpg', 'jpeg', 'mp4', 'mov', 'webp', 'svg'].includes(cleanExt);
-  const thumbnail = isMedia ? `https://picsum.photos/seed/${file.id || name}/400/250` : null;
+  const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(cleanExt);
+  const isVideo = ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(cleanExt);
+  const isAudio = ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(cleanExt);
+
+  const thumbnail = isImage
+    ? (file.previewUrl || `https://picsum.photos/seed/${file.id || name}/400/250`)
+    : isVideo
+    ? `https://picsum.photos/seed/${file.id || name}/400/250`
+    : null;
 
   return (
     <div
@@ -67,13 +74,28 @@ export default function FileGridCard({
 
       {/* Thumbnail Area */}
       <div className="aspect-square bg-surface w-full relative flex items-center justify-center overflow-hidden rounded-t-2xl border-b border-track/40">
-        {thumbnail ? (
-          <img
-            src={thumbnail}
-            alt={name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
+        {isAudio ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-surface via-white to-track/20 gap-2">
+            <div className="w-12 h-12 rounded-2xl bg-black/5 flex items-center justify-center text-ink/70 group-hover:scale-110 transition-transform">
+              <Music className="w-6 h-6 stroke-[1.8]" />
+            </div>
+          </div>
+        ) : thumbnail ? (
+          <>
+            <img
+              src={thumbnail}
+              alt={name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+            {isVideo && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-10 h-10 rounded-full bg-black/55 backdrop-blur-xs flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+                  <Play className="w-4 h-4 fill-white ml-0.5" />
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <FileTypeIcon className="w-12 h-12 text-muted/50 group-hover:scale-110 transition-transform duration-300" />
         )}

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   RefreshCw,
@@ -14,8 +15,9 @@ import { useAccounts } from '../hooks/useAccounts';
 import { useToast } from '../context/ToastContext';
 
 export default function Accounts() {
-  const { accounts, loading, syncAccount, disconnectAccount, connectAccount } = useAccounts();
+  const { accounts, loading, syncAccount, disconnectAccount, connectAccount, refetchAccounts } = useAccounts();
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [syncingId, setSyncingId] = useState(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -26,13 +28,33 @@ export default function Accounts() {
     name: '',
   });
 
+  // Handle post-OAuth redirect query params
+  useEffect(() => {
+    const connectedId = searchParams.get('connected');
+    const errorParam = searchParams.get('error');
+
+    if (connectedId) {
+      showToast('Successfully connected Google Drive account!', 'success');
+      if (typeof refetchAccounts === 'function') {
+        refetchAccounts();
+      }
+      setSearchParams({}, { replace: true });
+    } else if (errorParam) {
+      showToast(`Connection failed: ${errorParam}`, 'error');
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, showToast, refetchAccounts]);
+
   const handleSync = async (id, name) => {
     setSyncingId(id);
-    await syncAccount(id);
-    setTimeout(() => {
-      setSyncingId(null);
+    try {
+      await syncAccount(id);
       showToast(`Synced ${name} successfully`, 'success');
-    }, 400);
+    } catch (err) {
+      showToast(`Failed to sync ${name}: ${err.message}`, 'error');
+    } finally {
+      setSyncingId(null);
+    }
   };
 
   const handleOpenDisconnect = (id, name) => {
@@ -45,21 +67,25 @@ export default function Accounts() {
 
   const handleConfirmDisconnect = async () => {
     if (disconnectModalState.id) {
-      await disconnectAccount(disconnectModalState.id);
-      showToast(`Disconnected ${disconnectModalState.name}`, 'info');
+      try {
+        await disconnectAccount(disconnectModalState.id);
+        showToast(`Disconnected ${disconnectModalState.name}`, 'info');
+      } catch (err) {
+        showToast(`Failed to disconnect: ${err.message}`, 'error');
+      }
     }
     setDisconnectModalState({ isOpen: false, id: null, name: '' });
   };
 
   const handleProviderSelect = async (prov) => {
     setConnectingProviderId(prov.id);
-
-    setTimeout(async () => {
+    try {
       await connectAccount(prov.id);
+      // For Google Drive, window.location.href redirects to backend OAuth
+    } catch (err) {
       setConnectingProviderId(null);
-      setShowConnectModal(false);
-      showToast(`Successfully connected ${prov.name} account`, 'success');
-    }, 1000);
+      showToast(err.message || 'Failed to initiate connection', 'error');
+    }
   };
 
   return (

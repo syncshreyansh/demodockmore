@@ -1,55 +1,66 @@
-﻿import { mockAccounts, mockUser } from './mockData';
-
-let accountsStore = [...mockAccounts];
-let userStore = { ...mockUser };
+import { apiClient } from '../lib/apiClient';
+import { supabase } from '../lib/supabase';
+import defaultAvatar from '../assets/icons/avatar.svg';
 
 export async function getAccounts() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([...accountsStore]);
-    }, 50);
-  });
+  try {
+    const data = await apiClient.get('/api/accounts');
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error('[getAccounts] Error fetching accounts from backend:', err);
+    return [];
+  }
 }
 
 export async function getAccountById(id) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const account = accountsStore.find((a) => a.id === id);
-      if (account) {
-        resolve({ ...account });
-      } else {
-        reject(new Error(`Account with id ${id} not found`));
-      }
-    }, 50);
-  });
+  return await apiClient.get(`/api/accounts/${id}`);
 }
 
 export async function getUserProfile() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ ...userStore });
-    }, 50);
-  });
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        name: 'dockMore User',
+        email: '',
+        avatar: defaultAvatar,
+        plan: 'Pro Aggregator',
+        joined: 'September 2026',
+      };
+    }
+
+    return {
+      id: user.id,
+      name:
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email.split('@')[0],
+      email: user.email,
+      avatar: user.user_metadata?.avatar_url || defaultAvatar,
+      plan: 'Pro Aggregator',
+      joined: user.created_at
+        ? new Date(user.created_at).toLocaleDateString('en-US', {
+            month: 'long',
+            year: 'numeric',
+          })
+        : 'September 2026',
+    };
+  } catch (err) {
+    console.error('[getUserProfile] Error getting Supabase user profile:', err);
+    return {
+      name: 'dockMore User',
+      email: '',
+      avatar: defaultAvatar,
+      plan: 'Pro Aggregator',
+      joined: 'September 2026',
+    };
+  }
 }
 
 export async function syncAccount(id) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      accountsStore = accountsStore.map((acc) =>
-        acc.id === id ? { ...acc, lastSynced: 'Just now', status: 'active' } : acc
-      );
-      resolve({ success: true, id, syncedAt: new Date().toISOString() });
-    }, 100);
-  });
+  return await apiClient.post(`/api/accounts/${id}/sync`);
 }
 
 export async function disconnectAccount(id) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      accountsStore = accountsStore.filter((acc) => acc.id !== id);
-      resolve({ success: true, id });
-    }, 100);
-  });
+  return await apiClient.delete(`/api/accounts/${id}`);
 }
-
-

@@ -13,6 +13,7 @@ import {
   Edit3,
   LayoutGrid,
   List,
+  Cloud,
 } from 'lucide-react';
 import FileRow from '../components/ui/FileRow';
 import FileGridCard from '../components/ui/FileGridCard';
@@ -26,6 +27,7 @@ import CreateFolderModal from '../components/ui/CreateFolderModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import CustomSelect from '../components/ui/CustomSelect';
 import { useFiles } from '../hooks/useFiles';
+import { useAccounts } from '../hooks/useAccounts';
 import { useToast } from '../context/ToastContext';
 
 const PROVIDER_FILTERS = [
@@ -52,6 +54,7 @@ export default function AllFiles() {
     moveFiles,
     toggleStar,
   } = useFiles();
+  const { accounts } = useAccounts();
   const { showToast } = useToast();
 
   const [selectedProvider, setSelectedProvider] = useState('all');
@@ -337,7 +340,7 @@ export default function AllFiles() {
         </div>
       ) : (
         /* Secondary Stats & Sort Bar */
-        <div className="flex items-center justify-between bg-surface/60 px-4 py-2.5 rounded-2xl">
+        <div className="flex items-center justify-between bg-[#e9e9e9] px-4 py-2.5 rounded-2xl">
           <span className="text-xs text-muted font-medium">
             {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
             {searchQuery && ` matching "${searchQuery}"`}
@@ -417,6 +420,24 @@ export default function AllFiles() {
         {loading ? (
           <div className="bg-surface rounded-2xl py-12 text-center text-sm text-muted">
             Loading cloud files...
+          </div>
+        ) : accounts.length === 0 ? (
+          <div className="bg-surface rounded-2xl py-16 px-6 text-center flex flex-col items-center justify-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center text-ink mb-1">
+              <Cloud className="w-6 h-6 stroke-[2]" />
+            </div>
+            <h3 className="text-base font-bold text-ink">Connect your first cloud account</h3>
+            <p className="text-xs text-muted max-w-sm">
+              Link your Google Drive account to browse, search, and aggregate your cloud files in one unified workspace.
+            </p>
+            <PillButton
+              variant="solid"
+              size="md"
+              to="/accounts"
+              className="mt-2"
+            >
+              Connect Cloud Account
+            </PillButton>
           </div>
         ) : filteredFiles.length === 0 ? (
           <div className="bg-surface rounded-2xl py-12 text-center flex flex-col items-center justify-center gap-2">

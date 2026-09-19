@@ -12,6 +12,10 @@ import Settings from './pages/Settings';
 import IntroLoader, { shouldSkipIntro } from './components/ui/IntroLoader';
 import { IntroProvider } from './context/IntroContext';
 
+import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
+import ProtectedRoute, { PublicOnlyRoute } from './components/layout/ProtectedRoute';
+
 export default function App() {
   const [introComplete, setIntroComplete] = useState(shouldSkipIntro);
   const contentRef = useRef(null);
@@ -63,7 +67,32 @@ export default function App() {
             }}
           >
             <Routes>
-              <Route element={<AppLayout introComplete={introComplete} />}>
+              {/* Public Auth Routes */}
+              <Route
+                path="/signin"
+                element={
+                  <PublicOnlyRoute>
+                    <SignIn />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <PublicOnlyRoute>
+                    <SignUp />
+                  </PublicOnlyRoute>
+                }
+              />
+
+              {/* Protected Dashboard Routes */}
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AppLayout introComplete={introComplete} />
+                  </ProtectedRoute>
+                }
+              >
                 <Route path="/" element={<Home />} />
                 <Route path="/files" element={<AllFiles />} />
                 <Route path="/transfers" element={<Transfers />} />

@@ -1,27 +1,62 @@
-﻿import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { mockAccounts, mockUser } from '../api/mockData';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import {
+  getAccounts,
+  getUserProfile,
+  syncAccount as apiSyncAccount,
+  disconnectAccount as apiDisconnectAccount,
+} from '../api/accounts';
+import { supabase } from '../lib/supabase';
+import { API_BASE_URL } from '../lib/apiClient';
+import { useAuth } from './AuthContext';
 
 const AccountsContext = createContext(null);
 
 export function AccountsProvider({ children }) {
-  const [accounts, setAccounts] = useState(() => {
-    return [...mockAccounts];
-  });
-  const [user, setUser] = useState(() => {
-    return { ...mockUser };
-  });
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const { user: authUser } = useAuth();
+
+  const [accounts, setAccounts] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const fetchAccountsAndUser = useCallback(async () => {
+    if (!authUser) {
+      setAccounts([]);
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const [fetchedAccounts, fetchedUser] = await Promise.all([
+        getAccounts(),
+        getUserProfile(),
+      ]);
+      setAccounts(fetchedAccounts);
+      setUser(fetchedUser);
+    } catch (err) {
+      console.error('[AccountsProvider] Failed to fetch accounts:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [authUser]);
+
+  useEffect(() => {
+    fetchAccountsAndUser();
+  }, [fetchAccountsAndUser]);
 
   const syncAccount = useCallback(async (id) => {
     try {
+      const res = await apiSyncAccount(id);
       setAccounts((prev) =>
         prev.map((acc) =>
           acc.id === id ? { ...acc, lastSynced: 'Just now', status: 'active' } : acc
         )
       );
-      return { success: true, id, syncedAt: new Date().toISOString() };
+      return res;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -30,6 +65,7 @@ export function AccountsProvider({ children }) {
 
   const disconnectAccount = useCallback(async (id) => {
     try {
+      await apiDisconnectAccount(id);
       setAccounts((prev) => prev.filter((acc) => acc.id !== id));
       return { success: true, id };
     } catch (err) {
@@ -39,87 +75,25 @@ export function AccountsProvider({ children }) {
   }, []);
 
   const connectAccount = useCallback(async (providerId) => {
-    const providerMap = {
-      'google-drive': {
-        name: 'Google Drive',
-        emailPrefix: 'shreyansh.workspace',
-        domain: 'gmail.com',
-        accountLabel: 'Google Drive Workspace',
-        totalGB: 15,
-        usedGB: 4.2,
-        files: 178,
-      },
-      onedrive: {
-        name: 'OneDrive',
-        emailPrefix: 'shreyansh.personal',
-        domain: 'outlook.com',
-        accountLabel: 'OneDrive Personal',
-        totalGB: 5,
-        usedGB: 1.8,
-        files: 94,
-      },
-      dropbox: {
-        name: 'Dropbox',
-        emailPrefix: 'shreyansh.design',
-        domain: 'dropbox.com',
-        accountLabel: 'Dropbox Work Vault',
-        totalGB: 5,
-        usedGB: 2.1,
-        files: 132,
-      },
-      mega: {
-        name: 'MEGA',
-        emailPrefix: 'shreyansh.media',
-        domain: 'mega.nz',
-        accountLabel: 'MEGA Secure Archive',
-        totalGB: 20,
-        usedGB: 6.5,
-        files: 110,
-      },
-    };
+    if (providerId === 'google-drive' || providerId === 'google_drive') {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        throw new Error('You must be signed in to connect a Google Drive account.');
+      }
+      // Redirect to backend OAuth initiation route with the session token
+      window.location.href = `${API_BASE_URL}/api/auth/google/connect?token=${encodeURIComponent(token)}`;
+      return null;
+    }
 
-    const config = providerMap[providerId] || {
-      name: providerId,
-      emailPrefix: 'user',
-      domain: 'cloud.com',
-      accountLabel: `${providerId} Account`,
-      totalGB: 10,
-      usedGB: 2,
-      files: 50,
-    };
-
-    const count = accounts.filter((a) => a.provider === providerId).length + 1;
-    const newAccount = {
-      id: `acc-${Date.now()}`,
-      provider: providerId,
-      providerName: config.name,
-      name: `${config.accountLabel} #${count}`,
-      email: `${config.emailPrefix}${count > 1 ? count : ''}@${config.domain}`,
-      usedStorageGB: config.usedGB,
-      totalStorageGB: config.totalGB,
-      status: 'active',
-      lastSynced: 'Just now',
-      fileCount: config.files,
-    };
-
-    setAccounts((prev) => [...prev, newAccount]);
-    return newAccount;
-  }, [accounts]);
+    throw new Error(`Provider "${providerId}" is not yet supported in this stage.`);
+  }, []);
 
   const updateUser = useCallback((updates) => {
     setUser((prev) => ({
       ...prev,
       ...updates,
     }));
-  }, []);
-
-  const signOut = useCallback(() => {
-    setIsAuthenticated(false);
-  }, []);
-
-  const signIn = useCallback(() => {
-    setIsAuthenticated(true);
-    setUser({ ...mockUser });
   }, []);
 
   const rotateVaultKey = useCallback(() => {
@@ -161,18 +135,19 @@ export function AccountsProvider({ children }) {
       value={{
         accounts,
         user,
-        isAuthenticated,
+        isAuthenticated: Boolean(authUser),
         loading,
         error,
         syncAccount,
         disconnectAccount,
         connectAccount,
         updateUser,
-        signOut,
-        signIn,
+        signOut: async () => {},
+        signIn: async () => {},
         rotateVaultKey,
         exportBackup,
-        refetch: async () => {},
+        refetch: fetchAccountsAndUser,
+        refetchAccounts: fetchAccountsAndUser,
       }}
     >
       {children}
@@ -187,5 +162,3 @@ export function useAccountsContext() {
   }
   return context;
 }
-
-

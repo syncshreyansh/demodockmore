@@ -99,6 +99,21 @@ export function CodeProjectsProvider({ children }) {
     });
   }, []);
 
+  const updateProjectBackupAccount = useCallback((id, { accountId, provider, accountEmail }) => {
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              accountId: accountId || p.accountId,
+              provider: provider || p.provider,
+              accountEmail: accountEmail || p.accountEmail,
+            }
+          : p
+      )
+    );
+  }, []);
+
   const getSnapshots = useCallback(
     (projectId) => {
       return snapshots[projectId] || [];
@@ -117,6 +132,7 @@ export function CodeProjectsProvider({ children }) {
         removeProject,
         pushToGitHub,
         toggleWatch,
+        updateProjectBackupAccount,
         getSnapshots,
         refetch: async () => {},
       }}

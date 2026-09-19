@@ -11,8 +11,16 @@ import { useCodeProjects } from '../hooks/useCodeProjects';
 import { useToast } from '../context/ToastContext';
 
 export default function Code() {
-  const { projects, loading, addProject, removeProject, pushToGitHub, toggleWatch, getSnapshots } =
-    useCodeProjects();
+  const {
+    projects,
+    loading,
+    addProject,
+    removeProject,
+    pushToGitHub,
+    toggleWatch,
+    updateProjectBackupAccount,
+    getSnapshots,
+  } = useCodeProjects();
   const { showToast } = useToast();
 
   const [showTrackModal, setShowTrackModal] = useState(false);
@@ -37,11 +45,10 @@ export default function Code() {
 
   const handleToggleWatch = (project) => {
     toggleWatch(project.id);
-    const willWatch = project.watchStatus !== 'watching';
-    showToast(
-      `Watcher ${willWatch ? 'resumed' : 'paused'} for "${project.name}"`,
-      'info'
-    );
+  };
+
+  const handleUpdateBackupAccount = (project, accountData) => {
+    updateProjectBackupAccount(project.id, accountData);
   };
 
   const handleRemoveProject = (project) => {
@@ -82,6 +89,7 @@ export default function Code() {
               onToggleWatch={handleToggleWatch}
               onViewSnapshots={(proj) => setActiveProjectForSnapshots(proj)}
               onRemoveProject={handleRemoveProject}
+              onChangeBackupAccount={handleUpdateBackupAccount}
             />
           ))
         )}

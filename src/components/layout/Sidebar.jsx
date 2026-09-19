@@ -20,10 +20,12 @@ import AccountRow from '../ui/AccountRow';
 import HelpSupportModal from '../ui/HelpSupportModal';
 import defaultAvatar from '../../assets/icons/avatar.svg';
 import { useAccounts } from '../../hooks/useAccounts';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 export default function Sidebar({ onCloseMobile }) {
-  const { accounts, user, loading, signOut } = useAccounts();
+  const { accounts, user: accountUser, loading: accountsLoading } = useAccounts();
+  const { user: authUser, signOut: authSignOut } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -43,10 +45,15 @@ export default function Sidebar({ onCloseMobile }) {
     };
   }, []);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     setMenuOpen(false);
-    signOut();
-    showToast('Signed out successfully', 'info');
+    try {
+      await authSignOut();
+      showToast('Signed out successfully', 'info');
+      navigate('/signin');
+    } catch (err) {
+      showToast(err.message || 'Failed to sign out', 'error');
+    }
   };
 
   return (
@@ -116,7 +123,7 @@ export default function Sidebar({ onCloseMobile }) {
 
             {/* Connected Accounts List */}
             <div className="flex flex-col gap-2.5 max-h-[260px] overflow-y-auto pr-1 sidebar-scroll">
-              {loading ? (
+              {accountsLoading ? (
                 <div className="px-2 py-2 text-xs text-muted">
                   Loading accounts...
                 </div>
@@ -218,16 +225,16 @@ export default function Sidebar({ onCloseMobile }) {
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <img
-                  src={user?.avatar || defaultAvatar}
-                  alt={user?.name || 'User'}
+                  src={authUser?.user_metadata?.avatar_url || defaultAvatar}
+                  alt={authUser?.user_metadata?.full_name || 'User'}
                   className="w-8 h-8 rounded-figma object-cover shrink-0"
                 />
                 <div className="min-w-0 flex-1">
                   <h5 className="text-sm font-bold text-ink truncate leading-tight">
-                    {user?.name || 'Shreyansh Singh'}
+                    {authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || authUser?.email?.split('@')[0] || accountUser?.name || 'dockMore User'}
                   </h5>
                   <p className="text-[11px] text-muted leading-tight mt-0.5">
-                    {user?.email || 'mailshreyanshhere@gmail.com'}
+                    {authUser?.email || accountUser?.email || ''}
                   </p>
                 </div>
               </div>

@@ -1,118 +1,110 @@
-import { mockCodeProjects, mockSnapshots } from './mockData';
-
-let projectsStore = [...mockCodeProjects];
-let snapshotsStore = { ...mockSnapshots };
+import { apiClient } from '../lib/apiClient';
 
 export async function getCodeProjects() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([...projectsStore]);
-    }, 50);
-  });
+  try {
+    const res = await apiClient.get('/api/code-projects');
+    const projects = res.projects || [];
+
+    return projects.map((p) => ({
+      id: p.id,
+      name: p.name,
+      path: p.local_path || '~/',
+      watchStatus: p.watch_status || 'paused',
+      interval: p.snapshot_interval_minutes || 15,
+      accountId: p.backup_account_id,
+      provider: p.backup_provider || 'google-drive',
+      accountEmail: p.backup_account_email || '',
+      snapshotCount: 0,
+      lastSnapshot: p.last_snapshot_at
+        ? new Date(p.last_snapshot_at).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : 'Never',
+      lastCommitMessage: p.last_commit_message || 'Initial commit',
+      lastCommitTime: p.last_commit_at
+        ? new Date(p.last_commit_at).toLocaleDateString()
+        : 'Never',
+      branch: 'main',
+    }));
+  } catch (err) {
+    console.error('[getCodeProjects] Error:', err);
+    return [];
+  }
 }
 
 export async function getProjectById(id) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const proj = projectsStore.find((p) => p.id === id);
-      if (proj) {
-        resolve({ ...proj });
-      } else {
-        reject(new Error(`Project with id ${id} not found`));
-      }
-    }, 50);
-  });
+  const p = await apiClient.get(`/api/code-projects/${id}`);
+  return {
+    id: p.id,
+    name: p.name,
+    path: p.local_path || '~/',
+    watchStatus: p.watch_status || 'paused',
+    interval: p.snapshot_interval_minutes || 15,
+    accountId: p.backup_account_id,
+    provider: p.backup_provider || 'google-drive',
+    accountEmail: p.backup_account_email || '',
+    snapshots: p.snapshots || [],
+    snapshotCount: p.snapshots?.length || 0,
+    lastSnapshot: p.last_snapshot_at ? new Date(p.last_snapshot_at).toLocaleString() : 'Never',
+    lastCommitMessage: p.last_commit_message || '',
+    lastCommitTime: p.last_commit_at ? new Date(p.last_commit_at).toLocaleString() : '',
+    branch: 'main',
+  };
 }
 
 export async function createCodeProject(projectData) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newProject = {
-        id: `proj-${Date.now()}`,
-        watchStatus: 'watching',
-        snapshotCount: 1,
-        lastSnapshot: 'Just now',
-        lastCommitMessage: 'feat: initial project snapshot tracking',
-        lastCommitTime: 'Just now',
-        branch: 'main',
-        ...projectData,
-      };
+  const payload = {
+    name: projectData.name,
+    local_path: projectData.path || projectData.local_path,
+    backup_account_id: projectData.accountId || projectData.backup_account_id || null,
+    snapshot_interval_minutes: projectData.interval || projectData.snapshot_interval_minutes || 15,
+  };
 
-      projectsStore = [newProject, ...projectsStore];
-
-      // Seed initial snapshot
-      snapshotsStore[newProject.id] = [
-        {
-          id: `snap-${Date.now()}`,
-          projectId: newProject.id,
-          hash: Math.random().toString(16).substring(2, 9),
-          summary: '12 files tracked in shadow repository',
-          details: 'Initialized shadow git dir with cloud mirroring pipeline',
-          timestamp: 'Just now',
-          filesCount: 12,
-          mirroredToCloud: true,
-          size: '8.4 KB',
-        },
-      ];
-
-      resolve(newProject);
-    }, 100);
-  });
+  const p = await apiClient.post('/api/code-projects', payload);
+  return {
+    id: p.id,
+    name: p.name,
+    path: p.local_path || '~/',
+    watchStatus: p.watch_status || 'paused',
+    interval: p.snapshot_interval_minutes || 15,
+    accountId: p.backup_account_id,
+    snapshotCount: 0,
+    lastSnapshot: 'Never',
+    lastCommitMessage: '',
+    lastCommitTime: 'Never',
+    branch: 'main',
+  };
 }
 
 export async function pushCodeProject(id, commitMessage) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const proj = projectsStore.find((p) => p.id === id);
-      if (!proj) {
-        reject(new Error(`Project with id ${id} not found`));
-        return;
-      }
-
-      const msg = commitMessage || `Auto-commit: Consolidated ${proj.snapshotCount} fine-grained shadow snapshots`;
-      projectsStore = projectsStore.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              lastCommitMessage: msg,
-              lastCommitTime: 'Just now',
-            }
-          : p
-      );
-
-      resolve({
-        success: true,
-        id,
-        commitMessage: msg,
-        pushedAt: new Date().toISOString(),
-      });
-    }, 600);
+  const msg = commitMessage || 'Consolidated shadow snapshots';
+  const res = await apiClient.post(`/api/code-projects/${id}/commit`, {
+    commitMessage: msg,
   });
+  return {
+    success: true,
+    id,
+    commitMessage: res.last_commit_message || msg,
+    pushedAt: res.last_commit_at || new Date().toISOString(),
+  };
 }
 
 export async function toggleWatchStatus(id) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const proj = projectsStore.find((p) => p.id === id);
-      if (!proj) {
-        reject(new Error(`Project with id ${id} not found`));
-        return;
-      }
-
-      const newStatus = proj.watchStatus === 'watching' ? 'paused' : 'watching';
-      projectsStore = projectsStore.map((p) =>
-        p.id === id ? { ...p, watchStatus: newStatus } : p
-      );
-
-      resolve({ success: true, id, status: newStatus });
-    }, 100);
+  const project = await getProjectById(id);
+  const newStatus = project.watchStatus === 'watching' ? 'paused' : 'watching';
+  await apiClient.patch(`/api/code-projects/${id}`, {
+    watch_status: newStatus,
   });
+  return { success: true, id, status: newStatus };
 }
 
 export async function getProjectSnapshots(projectId) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([...(snapshotsStore[projectId] || [])]);
-    }, 50);
-  });
+  try {
+    const project = await getProjectById(projectId);
+    return project.snapshots || [];
+  } catch (err) {
+    console.error(`[getProjectSnapshots] Error for ${projectId}:`, err);
+    return [];
+  }
 }

@@ -1,22 +1,58 @@
-﻿import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { mockFiles, mockFolders, mockDashboardStats } from '../api/mockData';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { getFiles as apiGetFiles, getRecentFolders as apiGetRecentFolders } from '../api/files';
 import { useAccountsContext } from './AccountsContext';
 
 const FilesContext = createContext(null);
 
 export function FilesProvider({ children }) {
   const { accounts } = useAccountsContext();
-  const [files, setFiles] = useState(() => {
-    return [...mockFiles];
-  });
-  const [folders, setFolders] = useState(() => {
-    return [...mockFolders];
-  });
+  const [files, setFiles] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Dynamically compute stats from accounts and files so that any added/removed account or file updates dashboard stats
+  const fetchFilesAndFolders = useCallback(async () => {
+    if (!accounts || accounts.length === 0) {
+      setFiles([]);
+      setFolders([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const [fetchedFiles, fetchedFolders] = await Promise.all([
+        apiGetFiles(),
+        apiGetRecentFolders(),
+      ]);
+      setFiles(fetchedFiles);
+      setFolders(fetchedFolders);
+    } catch (err) {
+      console.error('[FilesProvider] Failed to load real files:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [accounts]);
+
+  useEffect(() => {
+    fetchFilesAndFolders();
+  }, [fetchFilesAndFolders]);
+
+  // Dynamically compute stats from real accounts and files
   const stats = useMemo(() => {
+    if (!accounts || accounts.length === 0) {
+      return {
+        totalUsedGB: 0,
+        totalCapacityGB: 0,
+        connectedAccountsCount: 0,
+        totalFilesCount: 0,
+        totalTransfersCount: 0,
+        storageByProvider: [],
+      };
+    }
+
     let totalCapacityGB = 0;
     let totalUsedGB = 0;
 
@@ -28,7 +64,7 @@ export function FilesProvider({ children }) {
     };
 
     accounts.forEach((acc) => {
-      totalCapacityGB += acc.totalStorageGB || 0;
+      totalCapacityGB += acc.totalStorageGB || 15;
       totalUsedGB += acc.usedStorageGB || 0;
 
       const provKey = acc.provider;
@@ -65,12 +101,12 @@ export function FilesProvider({ children }) {
     }
 
     return {
-      totalUsedGB: Number(totalUsedGB.toFixed(1)) || 35,
-      totalCapacityGB: totalCapacityGB || 45,
-      connectedAccountsCount: accounts.length || 5,
+      totalUsedGB: Number(totalUsedGB.toFixed(1)),
+      totalCapacityGB,
+      connectedAccountsCount: accounts.length,
       totalFilesCount: files.length,
-      totalTransfersCount: 5,
-      storageByProvider: storageByProvider.length > 0 ? storageByProvider : mockDashboardStats.storageByProvider,
+      totalTransfersCount: 0,
+      storageByProvider,
     };
   }, [accounts, files]);
 
@@ -165,7 +201,7 @@ export function FilesProvider({ children }) {
       name: (folderData.name || 'NEW FOLDER').toUpperCase(),
       provider: folderData.provider || 'google-drive',
       providerName: folderData.providerName || 'Google Drive',
-      accountEmail: folderData.accountEmail || 'mailshreyanshhere@gmail.com',
+      accountEmail: folderData.accountEmail || '',
       accent: false,
     };
     setFolders((prev) => [...prev, newFolder]);
@@ -182,7 +218,6 @@ export function FilesProvider({ children }) {
 
   const deleteFolder = useCallback((id) => {
     setFolders((prev) => prev.filter((f) => f.id !== id));
-    // Set files in this folder to root
     setFiles((prev) =>
       prev.map((f) => (f.folderId === id ? { ...f, folderId: null, path: '/' } : f))
     );
@@ -206,7 +241,7 @@ export function FilesProvider({ children }) {
         createFolder,
         renameFolder,
         deleteFolder,
-        refetch: async () => {},
+        refetch: fetchFilesAndFolders,
       }}
     >
       {children}
@@ -221,5 +256,3 @@ export function useFilesContext() {
   }
   return context;
 }
-
-

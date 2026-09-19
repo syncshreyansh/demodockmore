@@ -57,7 +57,10 @@ export default function IntroLoader({ onExitStart, onComplete }) {
       if (reducedMotion.current) return;
 
       const letters = letterRefs.current.filter(Boolean);
-      if (!letters.length || !wordRef.current || !containerRef.current) return;
+      if (!letters.length || !wordRef.current || !containerRef.current) {
+        onComplete?.();
+        return;
+      }
 
       const ctx = gsap.context(() => {
         const tl = gsap.timeline({

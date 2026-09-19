@@ -19,6 +19,7 @@ import ShareModal from '../components/ui/ShareModal';
 import RenameModal from '../components/ui/RenameModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { useFiles } from '../hooks/useFiles';
+import { useAccounts } from '../hooks/useAccounts';
 import { useToast } from '../context/ToastContext';
 
 function StorageTooltip({ active, payload }) {
@@ -76,6 +77,7 @@ function StorageTooltip({ active, payload }) {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { accounts, loading: accountsLoading } = useAccounts();
   const { files, folders, stats, loading, downloadFile, deleteFile, renameFile, starFile } = useFiles();
   const { showToast } = useToast();
 
@@ -121,47 +123,33 @@ export default function Home() {
     }
   };
 
-  // Multi-cloud breakdown data
-  const chartData = [
-    {
-      name: 'Google Drive',
-      provider: 'google-drive',
-      used: 15,
-      color: '#00AC47',
-      accounts: [
-        { name: 'Personal (Gmail)', email: 'mailshreyanshhere@gmail.com', used: '12 GB' },
-        { name: 'Workspace (Dev)', email: 'dev.shreyansh@company.io', used: '3 GB' },
-      ],
-    },
-    {
-      name: 'MEGA',
-      provider: 'mega',
-      used: 10,
-      color: '#D9272E',
-      accounts: [
-        { name: 'Vault Encrypted', email: 'sec.shreyansh@proton.me', used: '10 GB' },
-      ],
-    },
-    {
-      name: 'OneDrive',
-      provider: 'onedrive',
-      used: 10,
-      color: '#0078D4',
-      accounts: [
-        { name: 'Microsoft Work', email: 'reachbitsandgears@outlook.com', used: '2.5 GB' },
-      ],
-    },
-    {
-      name: 'Free Space',
-      provider: 'free',
-      used: 10,
-      color: '#D9D8D6',
-      accounts: [],
-    },
-  ];
+  // Dynamic multi-cloud breakdown data from connected accounts
+  const chartData = stats?.storageByProvider && stats.storageByProvider.length > 0
+    ? stats.storageByProvider
+    : [];
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Empty State Banner if no accounts connected */}
+      {!accountsLoading && accounts.length === 0 && (
+        <div className="bg-surface rounded-2xl p-6 border border-track/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-ink shrink-0">
+              <Cloud className="w-5 h-5 stroke-[2]" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-ink">Connect your first cloud account</h4>
+              <p className="text-xs text-muted mt-0.5">
+                Aggregate Google Drive into your unified workspace to access real-time storage metrics and files.
+              </p>
+            </div>
+          </div>
+          <PillButton to="/accounts" variant="solid" size="sm" className="shrink-0">
+            Connect Cloud Account
+          </PillButton>
+        </div>
+      )}
+
       {/* Asymmetric stats row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 md:gap-7">
         <div className="md:col-span-2 lg:col-span-6 bg-sidebar rounded-figma p-6 flex flex-col justify-between min-h-[190px] shadow-[0_0_4px_rgba(0,0,0,0.25)]">
@@ -170,47 +158,53 @@ export default function Home() {
               Total Storage
             </h4>
             <p className="text-sm md:text-[19px] text-muted font-normal mt-1">
-              {stats?.connectedAccountsCount || 5} Accounts Connected
+              {accounts.length} {accounts.length === 1 ? 'Account' : 'Accounts'} Connected
             </p>
           </div>
 
           <div className="flex items-end justify-between gap-4 mt-6">
             <div>
               <div className="font-sans font-semibold text-[30px] md:text-[37px] leading-none text-ink tracking-[-0.048em]">
-                {stats?.totalUsedGB || 35} GB
+                {stats?.totalUsedGB || 0} GB
               </div>
               <p className="text-xs text-ink font-semibold mt-1">
-                of {stats?.totalCapacityGB || 45} GB used.
+                of {stats?.totalCapacityGB || 0} GB used.
               </p>
             </div>
 
             <div className="w-24 h-24 shrink-0 relative flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Tooltip
-                    content={<StorageTooltip />}
-                    allowEscapeViewBox={{ x: true, y: true }}
-                    wrapperStyle={{ outline: 'none', zIndex: 100 }}
-                  />
-                  <Pie
-                    data={chartData}
-                    innerRadius={26}
-                    outerRadius={38}
-                    paddingAngle={2}
-                    dataKey="used"
-                    stroke="none"
-                    cursor="pointer"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.color}
-                        className="transition-opacity duration-150 hover:opacity-85 focus:outline-none"
-                      />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip
+                      content={<StorageTooltip />}
+                      allowEscapeViewBox={{ x: true, y: true }}
+                      wrapperStyle={{ outline: 'none', zIndex: 100 }}
+                    />
+                    <Pie
+                      data={chartData}
+                      innerRadius={26}
+                      outerRadius={38}
+                      paddingAngle={2}
+                      dataKey="used"
+                      stroke="none"
+                      cursor="pointer"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                          className="transition-opacity duration-150 hover:opacity-85 focus:outline-none"
+                        />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="w-16 h-16 rounded-full border-2 border-dashed border-track flex items-center justify-center text-[10px] text-muted text-center font-medium">
+                  0%
+                </div>
+              )}
             </div>
           </div>
         </div>
